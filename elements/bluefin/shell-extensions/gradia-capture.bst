@@ -22,6 +22,7 @@ config:
   - |
     _uuid="$(jq -r .uuid src/metadata.json)"
     _dest="%{install-root}%{datadir}/gnome-shell/extensions/${_uuid}"
+    install -d "${_dest}"
 
     cp -R src/* "${_dest}/"
     cp -R icons "${_dest}/icons"
