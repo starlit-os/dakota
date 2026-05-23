@@ -20,6 +20,9 @@ depends:
   - bluefin/tealdeer.bst
 
   - bluefin/common.bst
+  - bluefin/just-overrides.bst
+  - bluefin/firstboot-date.bst
+  - bluefin/bootc-install-config.bst
   - bluefin/composefs-loop-udisks-ignore.bst
   - bluefin/gnome-epub-thumbnailer.bst
   - bluefin/papers-thumbnailer.bst
