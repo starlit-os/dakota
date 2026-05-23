@@ -1,3 +1,6 @@
 # Hide the internal composefs metadata loop from UDisks clients such as Nautilus.
-# Keep the match narrow so user-created loop devices remain visible.
-SUBSYSTEM=="block", ACTION=="add|change|move|bind", KERNEL=="loop*", ENV{ID_FS_TYPE}=="erofs", ATTR{loop/backing_file}=="/composefs/objects/*", ENV{UDISKS_IGNORE}="1"
+# Match on erofs + loop* only — composefs is the only erofs loop user in practice.
+# ATTR{loop/backing_file} glob is intentionally omitted: fnmatch * does not
+# cross path separators, so /composefs/objects/* fails to match the real
+# two-level path /composefs/objects/<2-char>/<hash>.
+SUBSYSTEM=="block", KERNEL=="loop*", ENV{ID_FS_TYPE}=="erofs", ENV{UDISKS_IGNORE}="1"
