@@ -218,6 +218,11 @@ pre-approved once `validate` passes. See issue #501 for the auto-merge roadmap.
 - [ ] Patch filename is numbered sequentially (patches apply alphabetically)
 - [ ] Patch adds an exit condition comment: "Drop when fdsdk ships X" or "Drop after GBM gnome-50 reaches Y"
 
+### OCI image assembly (`elements/oci/`)
+
+- [ ] `ldconfig -r /layer` is present after `dconf update` and before `build-oci` — see [docs/oci-assembly.md](docs/oci-assembly.md)
+- [ ] Any new post-install step is inserted **before** `ldconfig -r /layer`
+
 ### Element changes (`elements/bluefin/`)
 
 - [ ] `ln -sf` commands are preceded by `mkdir -p` for the target directory

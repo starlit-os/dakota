@@ -179,3 +179,4 @@ Justfile             All build commands
 ```
 
 ![Dakorator](https://github.com/user-attachments/assets/ee92291d-a617-496e-abb6-9045a4c665ce)
+
