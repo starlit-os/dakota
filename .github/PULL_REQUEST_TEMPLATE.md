@@ -11,8 +11,9 @@
 
 ## Testing
 
-- [ ] `just bst show oci/bluefin.bst` passes
-- [ ] Built locally and tested (hardware confirmation required before upstream PR)
+- [ ] `BST_FLAGS="-o x86_64_v3 true --no-interactive" just bst show --deps all oci/bluefin.bst` passes
+- [ ] `just lint` passes on a built image
+- [ ] `just boot-fast` or `just boot-vm` — desktop comes up, no regressions
 
 ## Checklist
 
