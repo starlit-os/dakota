@@ -1,6 +1,7 @@
 ## What problem are you solving?
 <!-- Write this in your own words. One paragraph. No AI. -->
 
+- [ ] I am using an agent and I take responsibility for this PR
 
 ---
 
@@ -11,10 +12,9 @@
 ## Testing
 
 - [ ] `just bst show oci/bluefin.bst` passes
-- [ ] Built locally on ghost and tested on NUC (hardware confirmation required before upstream PR)
+- [ ] Built locally and tested (hardware confirmation required before upstream PR)
 
 ## Checklist
 
 - [ ] New BST elements wired into `deps.bst`
 - [ ] Patches in `patches/` regenerated if junction refs changed
-- [ ] No upstream PR opened without explicit permission
