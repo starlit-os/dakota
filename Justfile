@@ -68,7 +68,11 @@ build variant="all":
 
     if [ "{{variant}}" = "all" ]; then
         just build default
-        just build nvidia
+        if [ "${BUILD_SKIP_NVIDIA:-}" != "1" ]; then
+            just build nvidia
+        else
+            echo "==> Skipping nvidia variant (BUILD_SKIP_NVIDIA=1)"
+        fi
         exit 0
     fi
 
@@ -503,6 +507,11 @@ show-me-the-future:
 chunkify image_ref:
     #!/usr/bin/env bash
     set -euo pipefail
+
+    if [ "${BUILD_SKIP_CHUNKIFY:-}" = "1" ]; then
+        echo "==> Skipping chunkify (BUILD_SKIP_CHUNKIFY=1)"
+        exit 0
+    fi
 
     # Use sudo unless already root (CI runners are root)
     SUDO_CMD=""

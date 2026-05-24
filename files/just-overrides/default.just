@@ -131,23 +131,217 @@ check-local-overrides:
           -e "/Only in/ s/\$/&${RESET}/g" \
           -e "s/\:.*/${RESET}${YELLOW_COLOR}&${RESET}/g"
 
-# Gather device info to a pastebin
-device-info:
+# Collect a privacy-respecting diagnostic report and upload to your GitHub gist.
+# The gist is yours — you can view, share, or delete it any time.
+# ujust report
+report:
     #!/usr/bin/bash
-    if ! gum confirm "Submit information to the CentOS pastebin?" ; then
+    set -euo pipefail
+
+    REPORT_DIR="$(mktemp -d /tmp/ujust-report-XXXXXX)"
+    OTEL_CONFIG=""
+    cleanup() {
+        rm -rf "$REPORT_DIR"
+        [[ -n "$OTEL_CONFIG" ]] && rm -f "$OTEL_CONFIG"
+    }
+    trap cleanup EXIT
+
+    # ── Pre-OTel: collect command-based data ─────────────────────────────────
+
+    echo "Collecting system information..."
+
+    BOOTC_JSON=$(sudo bootc status --json 2>/dev/null || echo '{}')
+    BOOTED_IMAGE=$(echo "$BOOTC_JSON" | jq -r '.status.booted.image.image.image // "unknown"')
+    BOOTED_DIGEST=$(echo "$BOOTC_JSON" | jq -r '.status.booted.imageDigest // "unknown"')
+    STAGED_IMAGE=$(echo "$BOOTC_JSON" | jq -r '.status.staged.image.image.image // "none"')
+
+    GNOME_VERSION=$(gnome-shell --version 2>/dev/null || echo "unknown")
+    GNOME_EXTENSIONS=$(gnome-extensions list --enabled 2>/dev/null || echo "")
+
+    FLATPAK_LIST=$(flatpak list --columns=application,version 2>/dev/null || echo "unavailable")
+
+    LOAD_AVG=$(awk '{print $1", "$2", "$3}' /proc/loadavg)
+    MEM_INFO=$(free -h --si | awk '/^Mem:/{print $3" used / "$2" total"}')
+    FAILED_UNITS=$(systemctl list-units --state=failed --no-legend --plain 2>/dev/null \
+                   | awk '{print $1}' | head -20 || echo "")
+    KERNEL_VER=$(uname -r)
+
+    # Scrub /home/<user>/ paths from collected strings
+    FLATPAK_LIST=$(echo "$FLATPAK_LIST" | sed -E 's|/home/[^/[:space:]]+/|/home/<redacted>/|g')
+    GNOME_EXTENSIONS=$(echo "$GNOME_EXTENSIONS" | sed -E 's|/home/[^/[:space:]]+/|/home/<redacted>/|g')
+
+    # ── OTel phase: collect system information donation ────────────────────────────
+
+    echo "Collecting system information donation (35 seconds)..."
+
+    OTEL_CONFIG="$(mktemp /tmp/ujust-report-otel-XXXXXX.yaml)"
+    sed "s|/output/|${REPORT_DIR}/|g" \
+        /usr/share/ublue-os/just/otel/ujust-report-config.yaml > "$OTEL_CONFIG"
+
+    OTELCOL_BINARY=""
+    for candidate in \
+        "$HOME/.local/bin/otelcol-contrib" \
+        "/usr/local/bin/otelcol-contrib" \
+        "$(command -v otelcol-contrib 2>/dev/null || true)"; do
+        if [[ -n "$candidate" && -x "$candidate" ]]; then
+            OTELCOL_BINARY="$candidate"
+            break
+        fi
+    done
+
+    if [[ -n "$OTELCOL_BINARY" ]]; then
+        timeout 35 "$OTELCOL_BINARY" --config "$OTEL_CONFIG" 2>/dev/null || true
+    elif command -v podman &>/dev/null; then
+        timeout 45 podman run --rm --privileged \
+            --network=host \
+            -v /proc:/proc:ro \
+            -v /sys:/sys:ro \
+            -v /var/log/journal:/var/log/journal:ro \
+            -v /run/log/journal:/run/log/journal:ro \
+            -v "${OTEL_CONFIG}:/etc/otelcol/config.yaml:ro" \
+            -v "${REPORT_DIR}:/output" \
+            docker.io/otel/opentelemetry-collector-contrib@sha256:a2a52e43c1a80aa94120ad78c2db68780eb90e6d11c8db5b3ce2f6a0cc6b5029 \
+            2>/dev/null || true
+    else
+        echo "Warning: otelcol-contrib not found and podman unavailable."
+        echo "         System information donation omitted from report."
+    fi
+
+    # ── Build summary.md ─────────────────────────────────────────────────────
+
+    TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    # Derive a stable anonymous ID via keyed hash — do not expose machine-id directly.
+    # systemd treats /etc/machine-id as confidential; truncating it is not sufficient.
+    if [[ -r /etc/machine-id ]]; then
+        HOST_ID=$(printf 'ujust-report:%s' "$(cat /etc/machine-id)" | sha256sum | cut -c1-8)
+    else
+        HOST_ID="unknown"
+    fi
+    ARCH=$(uname -m)
+
+    {
+    printf '## Bluefin/Dakota Diagnostic Report\n'
+    printf 'Generated: %s\n' "${TIMESTAMP}"
+    printf 'Anonymous device ID: %s (truncated)\n' "${HOST_ID}"
+    printf '\n### System\n'
+    printf '* Kernel: %s\n' "${KERNEL_VER}"
+    printf '* Architecture: %s\n' "${ARCH}"
+    printf '* Load avg 1m/5m/15m: %s\n' "${LOAD_AVG}"
+    printf '* Memory: %s\n' "${MEM_INFO}"
+    printf '\n### Booted Image\n'
+    printf '* Image: %s\n' "${BOOTED_IMAGE}"
+    printf '* Digest: %s\n' "${BOOTED_DIGEST}"
+    printf '* Staged: %s\n' "${STAGED_IMAGE}"
+    printf '\n### GNOME\n'
+    printf '* Version: %s\n' "${GNOME_VERSION}"
+    printf '* Active extensions:\n'
+    if [[ -n "$GNOME_EXTENSIONS" ]]; then
+        echo "$GNOME_EXTENSIONS" | sed 's/^/  - /'
+    else
+        printf '  (none)\n'
+    fi
+    printf '\n### Failed Systemd Units\n'
+    if [[ -n "$FAILED_UNITS" ]]; then
+        echo "$FAILED_UNITS" | sed 's/^/  - /'
+    else
+        printf '  None\n'
+    fi
+    printf '\n### Installed Flatpaks\n'
+    printf '\`\`\`\n'
+    printf '%s\n' "${FLATPAK_LIST}"
+    printf '\`\`\`\n'
+    printf '\n### Full System Information Donation\n'
+    printf 'See report.otlp.json in this gist for the full system information donation (structured metrics and journal logs).\n'
+    } > "$REPORT_DIR/summary.md"
+
+    # ── Review ────────────────────────────────────────────────────────────────
+
+    echo ""
+    echo "📊 Review what will be donated before uploading:"
+    echo ""
+
+    # Render summary in a forced pager — user must scroll through and press q
+    if [[ -t 0 && -t 1 ]]; then
+        if command -v glow &>/dev/null; then
+            glow "$REPORT_DIR/summary.md" | gum pager
+        else
+            gum pager < "$REPORT_DIR/summary.md"
+        fi
+    else
+        if command -v glow &>/dev/null; then
+            glow "$REPORT_DIR/summary.md"
+        else
+            cat "$REPORT_DIR/summary.md"
+        fi
+    fi
+
+    # Show file paths and sizes so user knows exactly what leaves their machine
+    echo ""
+    echo "📁 Files that will be uploaded to YOUR gist (you can delete them anytime):"
+    echo ""
+    ls -lh "$REPORT_DIR/"summary.md 2>/dev/null | awk '{print "   " $NF " (" $5 ") — human-readable summary"}'
+    if [[ -f "$REPORT_DIR/report.otlp.json" ]]; then
+        ls -lh "$REPORT_DIR/report.otlp.json" | awk '{print "   " $NF " (" $5 ") — structured system metrics + journal logs"}'
+    fi
+    echo ""
+    echo "   Inspect anytime: cat $REPORT_DIR/summary.md"
+    echo ""
+
+    # ── Upload ────────────────────────────────────────────────────────────────
+
+    if ! gum confirm "Donate this system information report to your GitHub gist?"; then
+        echo "Donation cancelled. Files saved locally:"
+        echo "  $REPORT_DIR/"
+        trap - EXIT
         exit 0
     fi
 
-    cat &> /tmp/deviceinfo-out <<EOF
-    --#--# sudo bootc status --verbose:
-    $(sudo bootc status --verbose)
-    --#--# fpaste --sysinfo --printonly:
-    $(fpaste --sysinfo --printonly)
-    --#--# flatpak list --columns=application,version,options:
-    $(flatpak list --columns=application,version,options)
-    EOF
+    if ! gh auth status --active &>/dev/null; then
+        echo ""
+        echo "gh is not authenticated. Your system information is saved locally:"
+        echo "  $REPORT_DIR/"
+        echo ""
+        echo "To donate manually when ready:"
+        echo "  gh gist create --public --desc 'Bluefin system information donation' \\"
+        echo "    $REPORT_DIR/summary.md $REPORT_DIR/report.otlp.json"
+        trap - EXIT
+        exit 0
+    fi
 
-    cat /tmp/deviceinfo-out | fpaste
+    GIST_FILES=("$REPORT_DIR/summary.md")
+    [[ -f "$REPORT_DIR/report.otlp.json" ]] && GIST_FILES+=("$REPORT_DIR/report.otlp.json")
+
+    trap - EXIT
+    if ! GIST_URL=$(gh gist create --public \
+        --desc "Bluefin system information donation $(date -I)" \
+        "${GIST_FILES[@]}"); then
+        echo ""
+        echo "Upload failed. Your files are kept locally:"
+        echo "  $REPORT_DIR/"
+        exit 1
+    fi
+    cleanup
+
+    echo ""
+    echo "✅ Donated: $GIST_URL"
+    echo ""
+    echo "Your gist is in your own namespace — you can edit or delete it anytime:"
+    echo "  $GIST_URL"
+    echo ""
+    echo "To file an issue:"
+    echo "  1. Open: https://github.com/projectbluefin/dakota/issues/new"
+    echo "  2. Describe the problem in your own words at the top"
+    echo "  3. Paste this gist URL: $GIST_URL"
+    echo "  4. Add label: agent-ready"
+
+# Deprecated alias for ujust report.
+device-info:
+    #!/usr/bin/bash
+    echo ""
+    echo "⚠️  'ujust device-info' has been renamed to 'ujust report'."
+    echo "    Running 'ujust report' now..."
+    echo ""
+    just report
 
 # Measure Idle Power Draw
 check-idle-power-draw:
