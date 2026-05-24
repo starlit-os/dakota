@@ -212,50 +212,38 @@ report:
     ARCH=$(uname -m)
 
     {
-    cat <<SUMMARY
-## Bluefin/Dakota Diagnostic Report
-Generated: ${TIMESTAMP}
-Anonymous device ID: ${HOST_ID} (truncated)
-
-### System
-* Kernel: ${KERNEL_VER}
-* Architecture: ${ARCH}
-* Load average (1/5/15 min): ${LOAD_AVG}
-* Memory: ${MEM_INFO}
-
-### Booted Image
-* Image: ${BOOTED_IMAGE}
-* Digest: ${BOOTED_DIGEST}
-* Staged: ${STAGED_IMAGE}
-
-### GNOME
-* Version: ${GNOME_VERSION}
-* Active extensions:
-SUMMARY
+    printf '## Bluefin/Dakota Diagnostic Report\n'
+    printf 'Generated: %s\n' "${TIMESTAMP}"
+    printf 'Anonymous device ID: %s (truncated)\n' "${HOST_ID}"
+    printf '\n### System\n'
+    printf '* Kernel: %s\n' "${KERNEL_VER}"
+    printf '* Architecture: %s\n' "${ARCH}"
+    printf '* Load avg 1m/5m/15m: %s\n' "${LOAD_AVG}"
+    printf '* Memory: %s\n' "${MEM_INFO}"
+    printf '\n### Booted Image\n'
+    printf '* Image: %s\n' "${BOOTED_IMAGE}"
+    printf '* Digest: %s\n' "${BOOTED_DIGEST}"
+    printf '* Staged: %s\n' "${STAGED_IMAGE}"
+    printf '\n### GNOME\n'
+    printf '* Version: %s\n' "${GNOME_VERSION}"
+    printf '* Active extensions:\n'
     if [[ -n "$GNOME_EXTENSIONS" ]]; then
         echo "$GNOME_EXTENSIONS" | sed 's/^/  - /'
     else
-        echo "  (none)"
+        printf '  (none)\n'
     fi
-    cat <<SUMMARY
-
-### Failed Systemd Units
-SUMMARY
+    printf '\n### Failed Systemd Units\n'
     if [[ -n "$FAILED_UNITS" ]]; then
         echo "$FAILED_UNITS" | sed 's/^/  - /'
     else
-        echo "  None"
+        printf '  None\n'
     fi
-    cat <<SUMMARY
-
-### Installed Flatpaks
-\`\`\`
-${FLATPAK_LIST}
-\`\`\`
-
-### Full Telemetry
-See \`report.otlp.json\` in this gist for structured OTel metrics and journal logs.
-SUMMARY
+    printf '\n### Installed Flatpaks\n'
+    printf '\`\`\`\n'
+    printf '%s\n' "${FLATPAK_LIST}"
+    printf '\`\`\`\n'
+    printf '\n### Full Telemetry\n'
+    printf 'See report.otlp.json in this gist for structured OTel metrics and journal logs.\n'
     } > "$REPORT_DIR/summary.md"
 
     # ── Upload ────────────────────────────────────────────────────────────────
