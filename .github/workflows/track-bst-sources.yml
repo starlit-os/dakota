@@ -62,10 +62,6 @@ jobs:
             branch: auto/track-gsconnect
             title: "chore(deps): update gsconnect extension"
           - group: auto-merge
-            element: bluefin/shell-extensions/search-light.bst
-            branch: auto/track-search-light
-            title: "chore(deps): update search-light extension"
-          - group: auto-merge
             element: bluefin/shell-extensions/custom-command-menu.bst
             branch: auto/track-custom-command-menu
             title: "chore(deps): update custom-command-menu extension"
