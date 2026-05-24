@@ -76,9 +76,11 @@ processors:
           enabled: true
     override: false
 
-  # 2. Strip all personally identifying resource attributes.
-  attributes/privacy:
-    actions:
+  # 2a. Strip personally identifying resource-level attributes.
+  #     Must use a resource processor — attributes processors only target
+  #     per-record (span/metric/log) attributes, not resource attributes.
+  resource/privacy:
+    attributes:
       - key: host.name
         action: delete
       - key: host.hostname
@@ -89,6 +91,10 @@ processors:
         action: delete
       - key: container.name
         action: delete
+
+  # 2b. Strip personally identifying log record attributes (journald fields).
+  attributes/privacy_logs:
+    actions:
       - key: _HOSTNAME
         action: delete
       - key: SYSLOG_IDENTIFIER
@@ -119,9 +125,9 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, docker_stats]
-      processors: [resourcedetection, attributes/privacy]
+      processors: [resourcedetection, resource/privacy]
       exporters: [file]
     logs:
       receivers: [journald]
-      processors: [resourcedetection, attributes/privacy, transform/scrub_logs]
+      processors: [resourcedetection, resource/privacy, attributes/privacy_logs, transform/scrub_logs]
       exporters: [file]

@@ -194,6 +194,8 @@ report:
     elif command -v podman &>/dev/null; then
         timeout 45 podman run --rm --privileged \
             --network=host \
+            -v /proc:/proc:ro \
+            -v /sys:/sys:ro \
             -v /var/log/journal:/var/log/journal:ro \
             -v /run/log/journal:/run/log/journal:ro \
             -v "${OTEL_CONFIG}:/etc/otelcol/config.yaml:ro" \
@@ -208,7 +210,13 @@ report:
     # ── Build summary.md ─────────────────────────────────────────────────────
 
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    HOST_ID=$(head -c 8 /etc/machine-id 2>/dev/null || echo "unknown")
+    # Derive a stable anonymous ID via keyed hash — do not expose machine-id directly.
+    # systemd treats /etc/machine-id as confidential; truncating it is not sufficient.
+    if [[ -r /etc/machine-id ]]; then
+        HOST_ID=$(printf 'ujust-report:%s' "$(cat /etc/machine-id)" | sha256sum | cut -c1-8)
+    else
+        HOST_ID="unknown"
+    fi
     ARCH=$(uname -m)
 
     {
@@ -303,9 +311,16 @@ report:
     GIST_FILES=("$REPORT_DIR/summary.md")
     [[ -f "$REPORT_DIR/report.otlp.json" ]] && GIST_FILES+=("$REPORT_DIR/report.otlp.json")
 
-    GIST_URL=$(gh gist create --public \
+    trap - EXIT
+    if ! GIST_URL=$(gh gist create --public \
         --desc "Bluefin system information donation $(date -I)" \
-        "${GIST_FILES[@]}")
+        "${GIST_FILES[@]}"); then
+        echo ""
+        echo "Upload failed. Your files are kept locally:"
+        echo "  $REPORT_DIR/"
+        exit 1
+    fi
+    cleanup
 
     echo ""
     echo "✅ Donated: $GIST_URL"
