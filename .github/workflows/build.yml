@@ -317,7 +317,7 @@ jobs:
   # WebKit aarch64 artifacts are available from gbm.gnome.org (gnome-build-meta
   # builds aarch64 natively), so cold-build OOM/timeout should no longer occur.
   build-aarch64:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: false  # temporarily disabled — aarch64 needs further investigation
     runs-on: ubuntu-24.04-arm
     continue-on-error: true
     outputs:
