@@ -115,8 +115,6 @@ exporters:
   file:
     path: /output/report.otlp.json
     format: json
-    rotation:
-      enabled: false
 
 service:
   telemetry:
