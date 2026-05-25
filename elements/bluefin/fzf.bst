@@ -5,11 +5,11 @@ sources:
   base-dir: ""
   (?):
   - arch == "x86_64":
-      url: github_files:junegunn/fzf/releases/download/v0.73.0/fzf-0.73.0-linux_amd64.tar.gz
-      ref: f0e7068285b63163af5276d134b9bc7c37fbbf3a49441fca64ae2df424c2ff8d
+      url: github_files:junegunn/fzf/releases/download/v0.73.1/fzf-0.73.1-linux_amd64.tar.gz
+      ref: f3252c2c366bc1700d3c85781ec8c9695998927ac127870eb049ceea2d540f8a
   - arch == "aarch64":
-      url: github_files:junegunn/fzf/releases/download/v0.73.0/fzf-0.73.0-linux_arm64.tar.gz
-      ref: ffec94e3b8cad3b8fc803056c87c90dd4ee8c94d5dfd6b59fb0054d5ad945314
+      url: github_files:junegunn/fzf/releases/download/v0.73.1/fzf-0.73.1-linux_arm64.tar.gz
+      ref: a408b0b6c08d486307b8f1554f967b8b50ee1b3ea8b4035e3161bab31fdfc28d
 
 build-depends:
 - freedesktop-sdk.bst:public-stacks/runtime-minimal.bst
