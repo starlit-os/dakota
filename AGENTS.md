@@ -4,6 +4,17 @@
 > contribute safely and test PRs in this repository. Human contributors can
 > follow the same steps.
 
+## Find something to work on
+
+| Time available | Link |
+|----------------|------|
+| 30 minutes | [XS issues](https://github.com/projectbluefin/dakota/issues?q=is%3Aopen+label%3Aqueue%2Fagent-ready+label%3Asize%2Fxs+no%3Aassignee) |
+| Half a day | [S issues](https://github.com/projectbluefin/dakota/issues?q=is%3Aopen+label%3Aqueue%2Fagent-ready+label%3Asize%2Fs+no%3Aassignee) |
+| Full day | [M issues](https://github.com/projectbluefin/dakota/issues?q=is%3Aopen+label%3Aqueue%2Fagent-ready+label%3Asize%2Fm+no%3Aassignee) |
+| All sizes | [Everything ready](https://github.com/projectbluefin/dakota/issues?q=is%3Aopen+label%3Aqueue%2Fagent-ready+no%3Aassignee+sort%3Acreated-asc) |
+
+Comment `/claim` on any issue to take it. Actionadon assigns it to you and removes it from the pool. If there's no PR activity after 7 days it returns automatically — no hard feelings.
+
 Dakota is a [BuildStream 2](https://buildstream.build/) project that produces
 **Bluefin** - a bootc OCI desktop image built entirely from source using
 freedesktop-sdk and gnome-build-meta as upstream foundations. No RPMs. No dnf.
@@ -268,10 +279,10 @@ Discussion happens in the issue if people want it
   ▼ Maintainer adds status/approved when the issue is ready for approval
 Maintainer writes acceptance criteria in the issue body
   │
-  ▼ Maintainer adds needs-human/agent-ready
+  ▼ Maintainer adds queue/agent-ready
 Any human or agent can claim it — comment /claim on the issue
   │
-  ▼ actionadon adds agent/claimed, assigns the claimer
+  ▼ actionadon adds queue/claimed, assigns the claimer
 Implement the acceptance criteria, open a PR with Closes #NNN
   │
   ▼ CI validate passes, maintainer reviews, lab:pass applied
@@ -282,7 +293,7 @@ Merge queue → issue closes automatically
 
 `actionadon` is the bot that drives this. It runs as a GitHub Actions workflow (`.github/workflows/actionadon.yml`) and posts one short comment each time an issue advances a stage.
 
-| Comment `/claim` | Takes the issue. actionadon assigns you and adds `agent/claimed`. |
+| Comment `/claim` | Takes the issue. actionadon assigns you and adds `queue/claimed`. |
 |---|---|
 | Comment `/ready` | Wranglers and maintainers can move an approved, spec-complete issue into the queue. It requires a `### Acceptance criteria` section with real checklist items. |
 | Comment `/unclaim` | Returns it to the queue. The assignee, a wrangler, or a maintainer can unclaim. |
@@ -311,7 +322,7 @@ Initial wranglers:
 
 ### Hive integration
 
-If you're running [Hive](https://github.com/kubestellar/hive) against this repo, copy `files/hive/hive-project.yaml.example` to `/etc/hive/hive-project.yaml` and load the agent policy files from `files/hive/agent-policies/` as your per-agent CLAUDE.md overrides. The repo-local skill folder at `.github/skills/` is the human-readable companion to those Hive policies: use `dakota-build` for local validation, `dakota-agent-workflow` for issue/PR/report flows, and `dakota-ci` for routing changes. Hive will route donated-agent issues by flow: scanner handles project reports and issue reviews, reviewer handles PR reviews, and architect handles larger Dakota structural work. All of them claim `needs-human/agent-ready` issues via the `/claim` protocol above.
+If you're running [Hive](https://github.com/kubestellar/hive) against this repo, copy `files/hive/hive-project.yaml.example` to `/etc/hive/hive-project.yaml` and load the agent policy files from `files/hive/agent-policies/` as your per-agent CLAUDE.md overrides. The repo-local skill folder at `.github/skills/` is the human-readable companion to those Hive policies: use `dakota-build` for local validation, `dakota-agent-workflow` for issue/PR/report flows, and `dakota-ci` for routing changes. Hive will route donated-agent issues by flow: scanner handles project reports and issue reviews, reviewer handles PR reviews, and architect handles larger Dakota structural work. All of them claim `queue/agent-ready` issues via the `/claim` protocol above.
 
 ---
 ## Label protocol
@@ -322,11 +333,11 @@ If you're running [Hive](https://github.com/kubestellar/hive) against this repo,
 |---|---|
 | `status/discussing` | Structured issue flow in progress; not ready for the agent queue yet. |
 | `status/approved` | Approved for queue preparation — needs acceptance criteria before queue. |
-| `agent/claimed` | Actively being worked by a human or agent. |
+| `queue/claimed` | Actively being worked by a human or agent. |
 | `agent/blocked` | Blocked and needs human input before work can continue. |
 | `hold` | Do not touch; intentionally held by humans. |
 | `do-not-merge` | Do not merge or automate this item. |
-| `needs-human/agent-ready` | Issue is scoped with clear acceptance criteria. Ready for an agent or contributor to pick up and open a PR. |
+| `queue/agent-ready` | Issue is scoped with clear acceptance criteria. Ready for an agent or contributor to pick up and open a PR. |
 | `lgtm` | PR approved by a maintainer. |
 | `help wanted` | Good for any contributor, including agents. |
 | `kind:bug` | Something is broken and needs fixing. |
@@ -340,7 +351,7 @@ If you're running [Hive](https://github.com/kubestellar/hive) against this repo,
 | `lab:pass` | Maintainer lab validation passed; enables label-gated auto-merge for maintainer-owned PR branches. After `lab:pass`, one maintainer ack/approval is sufficient for merge-queue entry. |
 | `needs-human/agent-oops` | An agent made a mistake here — wrong assumption, bad output, filed a spurious issue, broke something. This label builds a learning corpus. |
 
-### `needs-human/agent-ready` - how to use it
+### `queue/agent-ready` - how to use it
 
 When you see this label on an issue:
 1. Read the full issue - the acceptance criteria are there
@@ -358,7 +369,7 @@ Hive should not touch issues labeled:
 - `do-not-merge`
 - `status/discussing`
 - `status/approved`
-- `agent/claimed`
+- `queue/claimed`
 - `agent/blocked`
 - `needs-human/agent-oops`
 - `duplicate` / `kind/duplicate`
@@ -450,4 +461,5 @@ just bst show --deps all --format '%{name}' oci/bluefin.bst \
 - freedesktop-sdk: https://gitlab.com/freedesktop-sdk/freedesktop-sdk
 - gnome-build-meta (GitHub mirror): https://github.com/GNOME/gnome-build-meta - branch `gnome-50`
 - Existing issues: https://github.com/projectbluefin/dakota/issues
-- Project board: https://github.com/orgs/projectbluefin/projects/2
+- Dakota Development board: https://github.com/orgs/projectbluefin/projects/3
+- todo.projectbluefin.io (all Bluefin projects): https://github.com/orgs/projectbluefin/projects/2
