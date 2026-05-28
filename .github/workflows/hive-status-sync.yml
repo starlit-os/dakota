@@ -176,3 +176,81 @@ jobs:
           print(f"Posted status update: {update_id}")
           PYEOF
         shell: bash
+
+      - name: Update project title with live stats
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          python3 << 'PYEOF'
+          import json, subprocess, sys, os
+
+          PROJECT_ID = "PVT_kwDOCCE0ds4BZAIm"
+          REPO = "projectbluefin/dakota"
+
+          if not os.environ.get("GH_TOKEN"):
+              print("WARNING: PROJECT_TOKEN not set — skipping title update", file=sys.stderr)
+              sys.exit(0)
+
+          def gh(*args):
+              r = subprocess.run(["gh"] + list(args), capture_output=True, text=True)
+              if r.returncode != 0:
+                  print(f"ERROR: gh {' '.join(args)}\n{r.stderr}", file=sys.stderr)
+                  sys.exit(1)
+              return r.stdout.strip()
+
+          # CI status: latest completed build.yml run
+          ci_raw = gh("run", "list", "--repo", REPO, "--workflow", "build.yml",
+                      "--limit", "1", "--json", "conclusion")
+          ci_runs = json.loads(ci_raw)
+          if ci_runs and ci_runs[0].get("conclusion") == "success":
+              ci = "CI ✅"
+          elif ci_runs and ci_runs[0].get("conclusion") in ("failure", "startup_failure"):
+              ci = "CI ❌"
+          else:
+              ci = "CI ⏳"
+
+          # Issue queue counts
+          def count_label(label):
+              raw = gh("issue", "list", "--repo", REPO,
+                       "--label", label, "--state", "open", "--json", "number")
+              return len(json.loads(raw))
+
+          n_ready   = count_label("queue/agent-ready")
+          n_claimed = count_label("queue/claimed")
+          n_p0      = count_label("P0")
+
+          # Build title
+          parts = [ci, f"{n_ready} ready", f"{n_claimed} claimed"]
+          if n_p0 > 0:
+              parts.append(f"{n_p0} P0 🔥")
+          title = "Dakota Development — " + " · ".join(parts)
+
+          print(f"Setting title: {title}")
+
+          mutation = """
+          mutation($projectId: ID!, $title: String!) {
+            updateProjectV2(input: { projectId: $projectId, title: $title }) {
+              projectV2 { title }
+            }
+          }
+          """
+
+          result = subprocess.run(
+              ["gh", "api", "graphql",
+               "-f", f"query={mutation}",
+               "-f", f"projectId={PROJECT_ID}",
+               "-f", f"title={title}"],
+              capture_output=True, text=True
+          )
+
+          if result.returncode != 0 or '"errors"' in result.stdout:
+              print("ERROR updating title:", file=sys.stderr)
+              print(result.stdout, file=sys.stderr)
+              print(result.stderr, file=sys.stderr)
+              sys.exit(1)
+
+          resp = json.loads(result.stdout)
+          new_title = resp["data"]["updateProjectV2"]["projectV2"]["title"]
+          print(f"Title updated to: {new_title}")
+          PYEOF
+        shell: bash
