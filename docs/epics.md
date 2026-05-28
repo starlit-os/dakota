@@ -2,9 +2,13 @@
 
 Epics group related issues into single shippable goals. Each epic has a clear definition of done and fewer than ten child issues. When all children are closed, the epic closes.
 
-**Boards:**
+**Dakota boards:**
 - [Dakota Epics](https://github.com/orgs/projectbluefin/projects/5) — one row per epic, status at a glance
 - [Dakota Flow](https://github.com/orgs/projectbluefin/projects/4) — every issue left-to-right from New to Shipped, filterable by epic
+- [Dakota Development](https://github.com/orgs/projectbluefin/projects/3) — full table with priority, size, area, and epic fields
+
+**Org-wide board (all Bluefin projects):**
+- [todo.projectbluefin.io](https://github.com/orgs/projectbluefin/projects/2)
 
 ---
 
