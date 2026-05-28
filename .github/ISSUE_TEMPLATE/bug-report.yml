@@ -21,13 +21,27 @@ body:
   - type: markdown
     attributes:
       value: |
-        If this is happening on a running Dakota system, you can attach a privacy-respecting diagnostics bundle by running:
+        ### 📊 Attach diagnostics
+
+        If this is happening on a running Dakota system, attach a privacy-respecting diagnostics bundle:
 
         ```bash
         ujust report
         ```
 
-        Paste the resulting gist URL below if you have one.
+        Paste the resulting gist URL below. You review everything before it uploads.
+
+        ---
+
+        ### 👋 Experiencing an existing bug?
+
+        If someone already filed this issue, you can add your system context with:
+
+        ```bash
+        ujust confirm <issue-number>
+        ```
+
+        This posts your image digest, kernel, and hardware fingerprint as a comment — helping maintainers understand how widespread the bug is.
 
   - type: dropdown
     id: workflow-path
@@ -121,6 +135,19 @@ body:
       render: markdown
     validations:
       required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ### Verify-steps (for maintainers)
+
+        When this bug is fixed and ships in a nightly, maintainers will add a `verify` block
+        to this issue so the community can confirm the fix works on their hardware:
+
+        ```bash
+        ujust verify <this-issue-number>
+        ```
 
   - type: textarea
     id: affected-elements

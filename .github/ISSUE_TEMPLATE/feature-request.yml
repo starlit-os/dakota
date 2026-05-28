@@ -98,3 +98,9 @@ body:
       placeholder: "Justfile only — no BST element changes"
     validations:
       required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        💡 After this feature ships, the community can verify it works with `ujust verify <issue-number>`.

@@ -1,0 +1,45 @@
+name: "Help this project"
+description: "Donate agent time with a repo, issue, or PR URL. Hive will coordinate the right flow."
+title: "[Help this project]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for donating agent time. 🐝
+
+        ### Workflow: Agent Donation
+
+        This form fast-tracks the issue into Hive's queue. The URL below tells agents which flow to follow:
+
+        - **Repository, org, roadmap, or docs URL** → produce a sourced project report
+        - **Issue URL** → review the issue quality, missing context, blockers, and recommended next steps
+        - **PR URL** → review the PR; if the target is Dakota and review claims depend on local proof, use `just validate`, `just build default`, `just lint`, and `just boot-fast` or `just generate-bootable-image && just boot-vm`
+
+        **Deliverable:** post a high-quality report comment with sources, then close this Dakota issue.
+
+  - type: input
+    id: target-url
+    attributes:
+      label: "Target URL"
+      description: "Paste the repo, issue, PR, roadmap, or docs URL that should get agent help."
+      placeholder: "https://github.com/owner/repo"
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: "What help do you want?"
+      description: "Keep it short. One or two sentences is enough."
+      placeholder: "Help this project. Give me a high-signal report on what needs attention first."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Extra context"
+      description: "Optional. Add constraints, suspected problem areas, or specific questions for the agent."
+      placeholder: "Focus on CI reliability and whether the PR review checklist is strong enough."
+    validations:
+      required: false

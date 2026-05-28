@@ -6,3 +6,6 @@ contact_links:
   - name: "Dakota contribution guide"
     url: https://github.com/projectbluefin/dakota/blob/main/AGENTS.md
     about: "Read the build, validation, and workflow rules before opening a PR."
+  - name: "Feedback loop design"
+    url: https://github.com/projectbluefin/dakota/blob/main/docs/feedback-loop.md
+    about: "How users, contributors, and the ghost lab produce evidence together."
