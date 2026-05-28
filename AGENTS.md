@@ -461,7 +461,5 @@ just bst show --deps all --format '%{name}' oci/bluefin.bst \
 - freedesktop-sdk: https://gitlab.com/freedesktop-sdk/freedesktop-sdk
 - gnome-build-meta (GitHub mirror): https://github.com/GNOME/gnome-build-meta - branch `gnome-50`
 - Existing issues: https://github.com/projectbluefin/dakota/issues
-- Dakota Flow (kanban): https://github.com/orgs/projectbluefin/projects/4
-- Dakota Epics (epic overview): https://github.com/orgs/projectbluefin/projects/5
-- Dakota Development (full table): https://github.com/orgs/projectbluefin/projects/3
+- Dakota Development board: https://github.com/orgs/projectbluefin/projects/3
 - todo.projectbluefin.io (all Bluefin projects): https://github.com/orgs/projectbluefin/projects/2
