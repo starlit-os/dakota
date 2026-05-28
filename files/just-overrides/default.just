@@ -227,7 +227,7 @@ report:
 
         if [[ -n "$OTELCOL_BINARY" ]]; then
             gum spin --spinner globe \
-                --title " Listening to your hardware — every signal helps the pack track this down..." \
+                --title " Listening to your hardware — every signal helps the kettle track this down..." \
                 -- timeout 35 "$OTELCOL_BINARY" --config "$OTEL_CONFIG" 2>/dev/null || true
         elif command -v podman &>/dev/null; then
             gum spin --spinner globe \
@@ -378,7 +378,7 @@ report:
 
     trap - EXIT
     if ! gum spin --spinner pulse \
-        --title " Sending your field notes to the pack..." \
+        --title " Sending your field notes to the kettle..." \
         -- bash "$UPLOAD_SCRIPT"; then
         echo ""
         gum style --foreground 196 --margin "0 2" "Upload failed. Files kept at: $REPORT_DIR/"
@@ -394,13 +394,15 @@ report:
         --border rounded --border-foreground 82 \
         --padding "1 3" --margin "0 1" \
         --bold --foreground 82 \
-        "✓ Donated — thank you for helping the pack."
+        "✓ Donated — thank you for contributing to the kettle."
     echo ""
     gum style --margin "0 2" "$GIST_URL"
     echo ""
 
     # Offer to open issue form with gist pre-filled
-    ENCODED_URL=$(printf '%s' "$GIST_URL" | sed 's|:|%3A|g; s|/|%2F|g')
+    # pre-fill the gist URL into the report-link field via query param
+    ENCODED_URL=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1],safe=''))" "$GIST_URL" 2>/dev/null \
+        || printf '%s' "$GIST_URL" | sed 's|:|%3A|g; s|/|%2F|g; s|@|%40|g')
     ISSUE_URL="https://github.com/projectbluefin/dakota/issues/new?template=bug-report.yml&report-link=${ENCODED_URL}"
     if gum confirm " Open a new issue in your browser with this report attached?"; then
         xdg-open "$ISSUE_URL" 2>/dev/null || gum style --foreground 245 --margin "0 2" "Visit: $ISSUE_URL"
