@@ -1,6 +1,8 @@
 name: "Bug report"
 description: "Something is broken. Let's fix it together."
+title: "[Bug]: "
 labels: ["kind/bug"]
+type: "Bug"
 body:
   - type: markdown
     attributes:
@@ -10,7 +12,7 @@ body:
         If you opt into **Raptor Current**, `actionadon` will open the structured path for you. Otherwise this stays a normal issue.
 
   - type: dropdown
-    id: workflow_path
+    id: workflow-path
     attributes:
       label: "Workflow path"
       description: "Choose the lighter direct path, or opt into Raptor Current for structured issue flow → approval → wrangler queue → agent claim."
@@ -21,7 +23,7 @@ body:
       required: true
 
   - type: textarea
-    id: what_happened
+    id: what-happened
     attributes:
       label: "What happened?"
       description: "What did you see? What did you expect to see?"
@@ -82,7 +84,7 @@ body:
         *Maintainers fill this in when approving. Agents use this as their spec.*
 
   - type: textarea
-    id: acceptance_criteria
+    id: acceptance-criteria
     attributes:
       label: "Acceptance criteria"
       description: "Filled in by a maintainer. Use real markdown checklist items (`- [ ] ...`). Leave blank when filing."
@@ -95,7 +97,7 @@ body:
       required: false
 
   - type: textarea
-    id: affected_elements
+    id: affected-elements
     attributes:
       label: "Affected BST elements or files (if known)"
       placeholder: "Justfile, elements/oci/bluefin.bst"

@@ -1,6 +1,8 @@
 name: "Feature request"
 description: "Propose something new for Bluefin. Use the direct path or opt into the structured queue."
+title: "[Feature]: "
 labels: ["kind/enhancement"]
+type: "Feature"
 body:
   - type: markdown
     attributes:
@@ -10,7 +12,7 @@ body:
         If you opt into **Raptor Current**, `actionadon` will open the structured path for you. Otherwise this stays a normal issue.
 
   - type: dropdown
-    id: workflow_path
+    id: workflow-path
     attributes:
       label: "Workflow path"
       description: "Choose the lighter direct path, or opt into Raptor Current for structured issue flow → approval → wrangler queue → agent claim."
@@ -39,7 +41,7 @@ body:
       required: true
 
   - type: textarea
-    id: bluefin_fit
+    id: bluefin-fit
     attributes:
       label: "Why does this belong in Bluefin?"
       description: "How does this fit the project's direction? Link to a discussion, prior issue, or upstream if relevant."
@@ -78,7 +80,7 @@ body:
         *Maintainers or wranglers fill this in when preparing the issue for the queue. Leave it blank when filing.*
 
   - type: textarea
-    id: acceptance_criteria
+    id: acceptance-criteria
     attributes:
       label: "Acceptance criteria"
       description: "Filled in by a maintainer after the issue is approved. Use real markdown checklist items (`- [ ] ...`). Agents use this as their spec."
@@ -91,7 +93,7 @@ body:
       required: false
 
   - type: textarea
-    id: affected_elements
+    id: affected-elements
     attributes:
       label: "Affected BST elements (if known)"
       description: "Which elements in elements/bluefin/ or elements/oci/ will change? Leave blank if unsure."
