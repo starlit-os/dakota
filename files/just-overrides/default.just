@@ -349,11 +349,15 @@ report:
     echo "Your gist is in your own namespace — you can edit or delete it anytime:"
     echo "  $GIST_URL"
     echo ""
-    echo "To file an issue:"
-    echo "  1. Open: https://github.com/projectbluefin/dakota/issues/new"
-    echo "  2. Describe the problem in your own words at the top"
-    echo "  3. Paste this gist URL: $GIST_URL"
-    echo "  4. Add label: agent-ready"
+
+    # Offer to open the bug report form in browser with gist pre-filled
+    ISSUE_URL="https://github.com/projectbluefin/dakota/issues/new?template=bug-report.yml&report-link=$(printf '%s' "$GIST_URL" | sed 's|:|%3A|g; s|/|%2F|g')"
+    if gum confirm "Open a new issue in your browser with the gist attached?"; then
+        xdg-open "$ISSUE_URL" 2>/dev/null || echo "  Could not open browser. Visit: $ISSUE_URL"
+    else
+        echo "To file an issue later:"
+        echo "  xdg-open '$ISSUE_URL'"
+    fi
 
 # Deprecated alias for ujust report.
 device-info:
@@ -363,6 +367,19 @@ device-info:
     echo "    Running 'ujust report' now..."
     echo ""
     just report
+
+# Open the Dakota issue tracker in your browser.
+# Usage: ujust file-issue
+file-issue:
+    #!/usr/bin/bash
+    TEMPLATE=$(gum choose "Bug report" "Feature request" "Help this project")
+    case "$TEMPLATE" in
+        Bug*)     URL="https://github.com/projectbluefin/dakota/issues/new?template=bug-report.yml" ;;
+        Feature*) URL="https://github.com/projectbluefin/dakota/issues/new?template=feature-request.yml" ;;
+        Help*)    URL="https://github.com/projectbluefin/dakota/issues/new?template=help-this-project.yml" ;;
+    esac
+    echo "Opening: $URL"
+    xdg-open "$URL" 2>/dev/null || echo "Could not open browser. Visit: $URL"
 
 # Confirm you also experience an issue ("me too" with system context).
 # Usage: ujust confirm 531
