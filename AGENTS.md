@@ -123,12 +123,12 @@ Always run this first. It checks the full element dependency graph without
 building anything. Same check CI runs on every PR.
 
 ```bash
-BST_FLAGS="-o x86_64_v3 true --no-interactive" just bst show --deps all oci/bluefin.bst
+just validate
 ```
 
-The `-o x86_64_v3 true` flag enables x86\_64-v3 CPU optimizations (AVX2/BMI2).
-This matches the CI build profile — omitting it validates a different graph.
-`--no-interactive` prevents BST from prompting during unattended runs.
+`just validate` mirrors CI by checking both default and nvidia element graphs.
+The `just bst` wrapper defaults to `-o x86_64_v3 true --no-interactive`, so
+local graph checks match CI without extra environment variables.
 
 Exits non-zero if any element has a missing dep, bad ref, or patch that fails
 to apply. If this passes, the graph is structurally sound.
@@ -137,7 +137,6 @@ to apply. If this passes, the graph is structurally sound.
 
 ```bash
 export BUILD_SKIP_NVIDIA=1    # skip nvidia variant - saves ~15 min
-export BUILD_SKIP_CHUNKIFY=1  # skip layer reorg - faster local iteration
 
 just build default
 ```
@@ -232,12 +231,79 @@ pre-approved once `validate` passes. See issue #501 for the auto-merge roadmap.
 
 ---
 
+## Community workflow
+
+Dakota uses a structured issue lifecycle so that the community shapes what gets built and agents build exactly what was agreed on — no more, no less.
+
+This workflow is **opt-in** in the issue form. Issues only enter it automatically when the author selects **Raptor Current**. Otherwise they stay ordinary issues unless a maintainer or wrangler chooses to route them into the workflow later with `status/approved` plus `/ready`.
+
+```
+New issue
+  │
+  ▼ actionadon labels status/discussing, posts welcome comment
+Discussion happens in the issue if people want it
+  │
+  ▼ Maintainer adds status/approved when the issue is ready for approval
+Maintainer writes acceptance criteria in the issue body
+  │
+  ▼ Maintainer adds needs-human/agent-ready
+Any human or agent can claim it — comment /claim on the issue
+  │
+  ▼ actionadon adds agent/claimed, assigns the claimer
+Implement the acceptance criteria, open a PR with Closes #NNN
+  │
+  ▼ CI validate passes, maintainer reviews, lab:pass applied
+Merge queue → issue closes automatically
+```
+
+### actionadon
+
+`actionadon` is the bot that drives this. It runs as a GitHub Actions workflow (`.github/workflows/actionadon.yml`) and posts one short comment each time an issue advances a stage.
+
+| Comment `/claim` | Takes the issue. actionadon assigns you and adds `agent/claimed`. |
+|---|---|
+| Comment `/ready` | Wranglers and maintainers can move an approved, spec-complete issue into the queue. It requires a `### Acceptance criteria` section with real checklist items. |
+| Comment `/unclaim` | Returns it to the queue. The assignee, a wrangler, or a maintainer can unclaim. |
+
+If a claimed issue has no PR activity for 7 days, actionadon automatically returns it to the queue.
+
+### Wrangler role
+
+Wranglers are the humans who keep the queue moving. This is intentionally a lower-barrier role than maintainer: they do not need to merge code or own every repo, they just need enough project context to shape issues into buildable specs and steer the bots.
+
+All projectbluefin maintainers are implicit wranglers. The list below is the extra named group for trusted contributors who should be able to drive the bots without becoming the merge gate.
+
+Wranglers can:
+- help turn discussion into acceptance criteria
+- comment `/ready` when an approved issue is spec-complete and should enter the queue
+- comment `/unclaim` when a claimed issue has gone stale and needs to go back in circulation
+- nudge Hive toward the right issues without becoming the merge gate
+
+Initial wranglers:
+- `castrojo`
+- `ahmedadan`
+- `alatiera`
+- `hanthor`
+- `coxde`
+- `renner0e`
+
+### Hive integration
+
+If you're running [Hive](https://github.com/kubestellar/hive) against this repo, copy `files/hive/hive-project.yaml.example` to `/etc/hive/hive-project.yaml` and load the agent policy files from `files/hive/agent-policies/` as your per-agent CLAUDE.md overrides. Hive's scanner will pick up `needs-human/agent-ready` issues and claim them via the `/claim` protocol above.
+
+---
 ## Label protocol
 
 ### Triage labels
 
 | Label | What it means |
 |---|---|
+| `status/discussing` | Structured issue flow in progress; not ready for the agent queue yet. |
+| `status/approved` | Approved for queue preparation — needs acceptance criteria before queue. |
+| `agent/claimed` | Actively being worked by a human or agent. |
+| `agent/blocked` | Blocked and needs human input before work can continue. |
+| `hold` | Do not touch; intentionally held by humans. |
+| `do-not-merge` | Do not merge or automate this item. |
 | `needs-human/agent-ready` | Issue is scoped with clear acceptance criteria. Ready for an agent or contributor to pick up and open a PR. |
 | `lgtm` | PR approved by a maintainer. |
 | `help wanted` | Good for any contributor, including agents. |
@@ -245,7 +311,7 @@ pre-approved once `validate` passes. See issue #501 for the auto-merge roadmap.
 | `kind:improvement` | Enhancement or cleanup — no spec required for small items. |
 | `kind:tech-debt` | Cleanup with no user-visible change. |
 | `kind:github-action` | CI or automation changes. |
-| `human-needed/agent-oops` | An agent made a mistake here — wrong assumption, bad output, filed a spurious issue, broke something. This label builds a learning corpus. |
+| `needs-human/agent-oops` | An agent made a mistake here — wrong assumption, bad output, filed a spurious issue, broke something. This label builds a learning corpus. |
 
 ### `needs-human/agent-ready` - how to use it
 
@@ -256,10 +322,24 @@ When you see this label on an issue:
 4. Open a PR with `Closes #NNN` in the body
 5. CI `validate` must pass
 
-### `human-needed/agent-oops` — how to use it
+### Hive exempt labels
+
+Hive should not touch issues labeled:
+- `hold`
+- `do-not-merge`
+- `status/discussing`
+- `status/approved`
+- `agent/claimed`
+- `agent/blocked`
+- `needs-human/agent-oops`
+- `duplicate` / `kind/duplicate`
+- `wontfix` / `kind/wontfix`
+- `stale`
+
+### `needs-human/agent-oops` — how to use it
 
 When an agent makes an error:
-- A maintainer adds `human-needed/agent-oops` to the relevant issue or PR
+- A maintainer adds `needs-human/agent-oops` to the relevant issue or PR
 - Do **not** remove this label — it is intentional signal
 - If you are the agent that made the error, note what went wrong in your response to the maintainer (so the pattern can be captured in agent skill files)
 - Examples: filed a duplicate issue, proposed a fix for something already upstream, broke a patch apply, failed to check hardware after a build
@@ -320,16 +400,16 @@ is real and must be fixed.
 
 ```bash
 # Check if your element changes are sound before building
-BST_FLAGS="-o x86_64_v3 true --no-interactive" just bst show --deps all oci/bluefin.bst
+just validate
 
 # Build just one element (faster iteration)
-BST_FLAGS="-o x86_64_v3 true --no-interactive" just bst build elements/bluefin/tailscale.bst
+just bst build elements/bluefin/tailscale.bst
 
 # Open a shell inside the build sandbox for an element
-BST_FLAGS="-o x86_64_v3 true --no-interactive" just bst shell --build elements/bluefin/tailscale.bst
+just bst shell --build elements/bluefin/tailscale.bst
 
 # Check what depends on an element (what will rebuild if this changes)
-BST_FLAGS="-o x86_64_v3 true --no-interactive" just bst show --deps all --format '%{name}' oci/bluefin.bst \
+just bst show --deps all --format '%{name}' oci/bluefin.bst \
   | grep -F "$(just bst show --format '%{name}' elements/bluefin/tailscale.bst)"
 ```
 
