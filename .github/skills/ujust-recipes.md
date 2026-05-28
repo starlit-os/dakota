@@ -5,33 +5,31 @@
 
 ---
 
-## just 1.47.1 heredoc tokenizer — CRITICAL
+## Heredoc content in shebang recipes — defensive pattern
 
-just 1.47.1 aggressively tokenizes heredoc content inside shebang recipes,
-rejecting constructs that look like syntax. Affected patterns:
+just parses heredoc content inside shebang recipes and can reject constructs
+that look like just syntax (lines starting with `-`, `...`, digit-paren
+expressions, mixed-indented `<<-EOF`). This is documented just behavior; the
+exact set of affected patterns may vary across versions.
 
-- Lines starting with `-` (treated as error-ignore modifier)
-- `...` (three dots — unknown token)
-- `$(uname -m)` — the `-m` flag inside `$(...)` at certain column positions
-- `(1/5/15 min)` — `(` followed by digit parsed as an expression
-- `<<-EOF` heredocs with tab-indented content (mixed whitespace)
-
-**Fix:** Replace all heredocs with `printf '%s\n'` per line.
+**Workaround:** Replace heredocs with `printf '%s\n'` per line. This keeps the
+content entirely in the shell's domain and avoids just's tokenizer entirely.
 
 ```bash
-# ❌ BAD — just tokenizes this
+# Fragile — just may tokenize heredoc content
 cat <<SUMMARY
 - Kernel: ${KERNEL_VER}
 * Load average (1/5/15 min): ${LOAD_AVG}
 SUMMARY
 
-# ✅ GOOD — just never sees these strings
+# Robust — just never sees these strings
 printf '* Kernel: %s\n' "${KERNEL_VER}"
 printf '* Load avg 1m/5m/15m: %s\n' "${LOAD_AVG}"
 ```
 
 Pre-compute all command substitutions with flags (`uname -m`, `uname -r`) into
-variables **before** any printf block.
+variables **before** any printf block. See the
+[just recipe docs](https://just.systems/man/en/) for the canonical escaping rules.
 
 ---
 
