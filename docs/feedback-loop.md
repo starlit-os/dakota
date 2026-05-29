@@ -7,6 +7,50 @@ produces structured evidence that flows back into the next iteration.
 This is not telemetry. Dakota never phones home. Every piece of data is donated
 by a human who reviews it first and owns it afterward.
 
+## The Data Donation Principle
+
+A `ujust report` submission is a deliberate, informed data donation. The user
+reviews the gist before the issue is filed. The gist belongs to them. They
+control what leaves their machine and can delete it afterward. This is not
+telemetry. It is a voluntary act of trust.
+
+Automation exists to serve that donation. Without it, a maintainer spends the
+first round of triage asking the same questions every time: can you reproduce
+it, what kernel are you on, what hardware is this, does it happen on every
+boot, what services were running. With automation, the report already contains
+kernel version, hardware context, logs, and service state. The maintainer's
+time goes to diagnosis and fixes instead of comment-thread archaeology. The
+work-per-report ratio drops dramatically.
+
+This creates a design contract with reporters: every automation decision must
+answer one question first — does this make the user's data donation more
+visible, more valued, and more likely to result in a fix? If the answer is no,
+it should not exist.
+
+That is why the pipeline widget shows `report: attached` so the reporter can
+see that their gist was received. It shows `confirms:` so they can see community
+signal and know they are not alone. It shows `verified: N/3` so closure is tied
+to observed fixes, not assumption. It shows `next action:` so the loop always
+ends with a concrete command, not guesswork.
+
+The multiplier effect is the point. One `ujust report` gist removes five or
+more rounds of back-and-forth. One `ujust confirm` adds new hardware coverage
+without opening a duplicate issue. One `ujust verify` closes the issue with
+fresh evidence after the fix ships. The automation turns individual data
+donations into collective intelligence.
+
+This also defines what agents and automation must not do:
+
+- Never remove or replace the pipeline widget sentinel block
+  (`<!-- actionadon-pipeline -->`).
+- Never close an issue without checking `verified:` count — three verifies or an
+  explicit maintainer decision.
+- Treat a high `confirms:` count as priority signal. It means the impact spans
+  more hardware.
+- Treat `report: attached` as meaning full structured evidence is already
+  available. Do not ask the reporter to re-describe what is already in the
+  gist.
+
 ---
 
 ## Principle
@@ -158,6 +202,44 @@ trust — there is always a command to run and a result to share.
 - **Agents produce the same evidence as humans.** An agent claiming an issue
   runs the same `just validate → build → boot-test → lint` pipeline. The
   evidence is identical in structure to what a human contributor produces.
+
+---
+
+## Actionadon and the Pipeline Widget
+
+Actionadon makes the feedback loop visible inside the issue itself. The widget
+is a compact status view of where the issue is, what evidence is attached, and
+what should happen next.
+
+```text
+<!-- actionadon-pipeline -->
+DAKOTA  ·  issue pipeline
+─────────────────────────────────────────────────
+  ✓  filed      report received
+  ✓  approved   cleared for the build queue
+  ▶  queued     open for contributors
+  ·  claimed    —
+  ·  done       —
+─────────────────────────────────────────────────
+  report:       attached    ·  confirms: 2
+  area:         hardware    ·  priority: high
+  verified:     0/3         ·  next action: comment /claim to take this
+```
+
+The `<!-- actionadon-pipeline -->` sentinel block is the anchor Actionadon uses
+to update the widget in place. It must not be removed, renamed, or replaced.
+Without it, the issue loses its stable pipeline view and the reporter loses the
+most visible proof that their donation was received and acted on.
+
+Each metadata row maps directly to the feedback loop:
+
+- `report:` answers whether data was donated.
+- `confirms:` shows how many other users hit the same problem.
+- `area:` and `priority:` show where the issue lands in the build and how urgent
+  it is.
+- `verified:` shows whether the fix is proven on real systems.
+- `next action:` is the MOTD line. It should always be a concrete `ujust`
+  command or slash command.
 
 ---
 
