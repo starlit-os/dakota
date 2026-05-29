@@ -1,5 +1,5 @@
-# Bluefin
-*Dakotaraptor steini*
+# Bluefin Dakota
+*Dakotaraptor steini* 
 
 [Bluefin](https://projectbluefin.io) built on [GNOME OS](https://os.gnome.org/), assembled entirely from source.
 
