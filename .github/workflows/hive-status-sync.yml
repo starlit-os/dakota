@@ -19,12 +19,14 @@ jobs:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         run: |
           python3 << 'PYEOF'
-          import re, json, subprocess, urllib.request, sys
+          import re, json, subprocess, urllib.request, sys, os
           from datetime import datetime, timezone
 
-          SNAPSHOT_URL = "https://raw.githubusercontent.com/kubestellar/docs/main/public/live/hive/bluefin/index.html"
-          PROJECT_ID   = "PVT_kwDOCCE0ds4BZAIm"
+          SNAPSHOT_URL  = "https://raw.githubusercontent.com/kubestellar/docs/main/public/live/hive/bluefin/index.html"
+          PROJECT_ID    = "PVT_kwDOCCE0ds4BZAIm"
           DASHBOARD_URL = "https://kubestellar.io/live/hive/bluefin/"
+          REPO          = "projectbluefin/dakota"
+          ISSUES_URL    = f"https://github.com/{REPO}/issues"
 
           # Fetch snapshot
           req = urllib.request.Request(SNAPSHOT_URL, headers={"User-Agent": "hive-status-sync/1.0"})
@@ -40,15 +42,13 @@ jobs:
           agents = json.loads(m.group(1))
 
           # Summarize agent states
-          active = [a for a in agents if a.get("state") == "running"]
-          working = [a for a in active if a.get("busy") == "working"]
-          idle = [a for a in active if a.get("busy") != "working"]
-          stopped = [a for a in agents if a.get("state") != "running"]
-
-          total = len(agents)
+          active  = [a for a in agents if a.get("state") == "running"]
+          working = [a for a in active  if a.get("busy") == "working"]
+          stopped = [a for a in agents  if a.get("state") != "running"]
+          total    = len(agents)
           n_active = len(active)
 
-          # Determine status
+          # Determine project status
           if n_active >= 3:
               status = "ON_TRACK"
           elif n_active >= 1:
@@ -56,52 +56,119 @@ jobs:
           else:
               status = "OFF_TRACK"
 
+          # Formation health bar (colorblind-safe: shape + fill)
+          filled      = round((n_active / total) * 10) if total > 0 else 0
+          health_bar  = "█" * filled + "░" * (10 - filled)
+
+          # Formation headline
+          if n_active >= 3:
+              formation_status = "Formation coherent"
+          elif n_active >= 1:
+              formation_status = "Coverage reduced"
+          else:
+              formation_status = "Formation broken"
+
+          # Relative time helper
+          def rel_time(ts_str):
+              if not ts_str:
+                  return "—"
+              try:
+                  ts    = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                  delta = datetime.now(timezone.utc) - ts
+                  s     = int(delta.total_seconds())
+                  if s < 60:    return f"{s}s ago"
+                  if s < 3600:  return f"{s // 60}m ago"
+                  if s < 86400: return f"{s // 3600}h ago"
+                  return f"{s // 86400}d ago"
+              except Exception:
+                  return ts_str
+
           # Clean liveSummary (strip box-drawing, compress blank lines)
           def clean_summary(text):
               if not text:
                   return ""
-              # Strip box-drawing characters and border lines
               cleaned = re.sub(r'[┃│╔╗╚╝╠╣═─┌┐└┘├┤┬┴┼|]', '', text)
-              # Strip trailing /data/agents/... lines
               cleaned = re.sub(r'/data/agents/\S+', '', cleaned)
-              # Strip prompt artifacts
               cleaned = re.sub(r'─+\s*\n\s*❯\s*\n\s*─+', '', cleaned)
-              # Strip version lines
               cleaned = re.sub(r'v[\d.]+ available.*', '', cleaned)
-              # Collapse multiple blank lines
               cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
-              # Strip leading/trailing whitespace per line
-              lines = [l.rstrip() for l in cleaned.splitlines()]
-              # Remove lines that are just whitespace or single chars
-              lines = [l for l in lines if len(l.strip()) > 2]
+              lines   = [l.rstrip() for l in cleaned.splitlines()]
+              lines   = [l for l in lines if len(l.strip()) > 2]
               return '\n'.join(lines).strip()
 
           # Get supervisor summary (most informative)
-          supervisor = next((a for a in agents if a.get("role") == "supervisor"), None)
-          summary_text = ""
-          if supervisor:
-              summary_text = clean_summary(supervisor.get("liveSummary", ""))
+          supervisor   = next((a for a in agents if a.get("role") == "supervisor"), None)
+          summary_text = clean_summary(supervisor.get("liveSummary", "")) if supervisor else ""
 
-          # Build agent roster table
+          # Fetch CI status and issue counts
+          def gh_json(*args):
+              r = subprocess.run(["gh"] + list(args), capture_output=True, text=True)
+              if r.returncode != 0:
+                  return None
+              try:
+                  return json.loads(r.stdout)
+              except Exception:
+                  return None
+
+          ci_label = "⏳ pending"
+          ci_runs  = gh_json("run", "list", "--repo", REPO, "--workflow", "build.yml",
+                             "--limit", "1", "--json", "conclusion,url")
+          if ci_runs:
+              run        = ci_runs[0]
+              conclusion = run.get("conclusion", "")
+              url        = run.get("url", "")
+              if conclusion == "success":
+                  ci_label = f"[✅ build stable]({url})"
+              elif conclusion in ("failure", "startup_failure"):
+                  ci_label = f"[❌ build degraded]({url})"
+              else:
+                  ci_label = f"[⏳ build running]({url})"
+
+          def count_label(label):
+              raw = gh_json("issue", "list", "--repo", REPO,
+                            "--label", label, "--state", "open", "--json", "number")
+              return len(raw) if raw else 0
+
+          n_p0 = count_label("P0")
+
+          # Fireteam — unique contributors from merged PRs (last 50), excluding bots
+          BOT_SUFFIXES = ("[bot]", "-bot", "copilot", "renovate", "dependabot")
+          fireteam_raw = gh_json("pr", "list", "--repo", REPO, "--state", "merged",
+                                 "--limit", "50", "--json", "author")
+          fireteam = []
+          seen = set()
+          if fireteam_raw:
+              for pr in fireteam_raw:
+                  login = (pr.get("author") or {}).get("login", "")
+                  if login and login not in seen:
+                      low = login.lower()
+                      if not any(low.endswith(s) or s in low for s in BOT_SUFFIXES):
+                          seen.add(login)
+                          fireteam.append(login)
+
+          # Agent roster table
+          # Status uses shape + color so colorblind readers can distinguish by symbol alone:
+          #   🔵 ▶  active   (blue + play)
+          #   🟡 ⏸  standby  (amber + pause)
+          #   ⬛ ✕  offline  (dark + X)
           roster_rows = []
           for a in sorted(agents, key=lambda x: x.get("sortOrder", 99)):
-              emoji = a.get("emoji", "")
-              name = a.get("displayName", a.get("name", ""))
-              state = a.get("state", "unknown")
-              busy = a.get("busy", "")
-              model = a.get("model", "")
-              last_kick = a.get("lastKick", "")
-              next_kick = a.get("nextKick", "")
-              cadence = a.get("cadence", "")
+              emoji     = a.get("emoji", "")
+              name      = a.get("displayName", a.get("name", ""))
+              state     = a.get("state", "unknown")
+              busy      = a.get("busy", "")
+              model     = a.get("model", "")
+              last_seen = rel_time(a.get("lastKick", ""))
+              next_ck   = a.get("nextKick", "—")
 
               if state == "running" and busy == "working":
-                  status_icon = "🟢 working"
+                  status_icon = "🔵 ▶ active"
               elif state == "running":
-                  status_icon = "🟡 idle"
+                  status_icon = "🟡 ⏸ standby"
               else:
-                  status_icon = "🔴 stopped"
+                  status_icon = "⬛ ✕ offline"
 
-              roster_rows.append(f"| {emoji} {name} | {status_icon} | {model} | {last_kick} | next: {next_kick} |")
+              roster_rows.append(f"| {emoji} {name} | {status_icon} | {model} | {last_seen} | {next_ck} |")
 
           roster_table = "\n".join([
               "| Agent | Status | Model | Last Active | Next |",
@@ -111,21 +178,33 @@ jobs:
           # Timestamp
           now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-          # Build status body
-          header = f"**{n_active}/{total} agents active**"
+          # Status bar — P0 count only surfaces when non-zero
+          p0_fragment = f" · ▲ {n_p0} P0" if n_p0 > 0 else ""
+          status_bar  = f"`[{health_bar}]` {formation_status} · {n_active}/{total} active · {ci_label}{p0_fragment}"
+
+          # Active agent names for header
+          header = f"**{n_active}/{total} active**"
           if working:
               working_names = " · ".join(
-                  f"{a.get('emoji','')} {a.get('name','')}" for a in working
+                  f"{a.get('emoji', '')} {a.get('name', '')}" for a in working
               )
               header += f" — {working_names} working"
 
-          body_parts = [header, ""]
+          # Assemble body — original two-section structure + status bar
+          body_parts = [status_bar, "", header, ""]
 
           if summary_text:
               body_parts += ["### What the team is working on", "", summary_text, ""]
 
           body_parts += ["### Agent roster", "", roster_table, ""]
-          body_parts += [f"_Updated {now_utc} · [Live dashboard]({DASHBOARD_URL})_"]
+
+          if fireteam:
+              fireteam_line = "**The Fireteam:** " + " · ".join(fireteam)
+              body_parts += ["", fireteam_line]
+
+          body_parts += [
+              f"_Updated hourly · {now_utc} · [Live dashboard]({DASHBOARD_URL}) · [Issue queue]({ISSUES_URL})_",
+          ]
 
           body = "\n".join(body_parts)
 
