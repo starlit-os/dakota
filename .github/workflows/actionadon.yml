@@ -2,7 +2,7 @@ name: actionadon
 
 # actionadon — lifecycle bot for Dakota issues.
 # Pipeline: filed → approved → queued → claimed → done
-# Commands: /claim  /unclaim  /ready  /approve (/lgtm alias)
+# Commands: /claim  /unclaim  /approve (/lgtm alias)
 
 on:
   issues:
@@ -28,7 +28,6 @@ jobs:
        github.event.issue.pull_request == null &&
        (startsWith(github.event.comment.body, '/claim') ||
         startsWith(github.event.comment.body, '/unclaim') ||
-        startsWith(github.event.comment.body, '/ready') ||
         startsWith(github.event.comment.body, '/approve') ||
         startsWith(github.event.comment.body, '/lgtm')))
     runs-on: ubuntu-24.04
@@ -45,7 +44,7 @@ jobs:
           }
           label "needs-triage" "d4c5f9" "Needs human review — set kind, priority, and area."
           label "status/discussing" "7c83fd" "Structured issue flow in progress; not ready for the agent queue yet."
-          label "status/approved" "2ea44f" "Approved for the build queue — add acceptance criteria then /ready."
+          label "status/approved" "2ea44f" "Approved and queued by a maintainer — ready to claim."
           label "queue/agent-ready" "a467dc" "Has a spec, ready to claim — comment /claim."
           label "queue/claimed" "e8b86d" "In active work — comment /unclaim to return."
           label "lgtm" "0e8a16" "Maintainer approved — ready to merge."
@@ -133,7 +132,7 @@ jobs:
     needs: ensure-labels
     runs-on: ubuntu-24.04
     steps:
-      - name: Post approved pipeline
+      - name: Queue approved issue
         if: github.event.label.name == 'status/approved'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -141,6 +140,7 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
         run: |
+          gh issue edit "$ISSUE_URL" --add-label "queue/agent-ready"
           gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" --paginate \
             --jq '.[] | select(.body | startswith("<!-- actionadon-pipeline -->")) | .id' \
           | while read -r cid; do
@@ -149,10 +149,10 @@ jobs:
           BODY=$(printf '%s\n' \
             '<!-- actionadon-pipeline -->' \
             '```text' \
-            '✓────────▶────────·────────·────────·' \
+            '✓────────✓────────▶────────·────────·' \
             'filed    approved queued   claimed  done' \
             '```' \
-            'Wranglers: write acceptance criteria then comment `/ready`.')
+            'Comment `/claim` to take this.')
           gh issue comment "$ISSUE_URL" --body "$BODY"
 
       - name: Post queued pipeline
@@ -232,7 +232,6 @@ jobs:
       github.event.issue.pull_request == null &&
       (startsWith(github.event.comment.body, '/claim') ||
        startsWith(github.event.comment.body, '/unclaim') ||
-       startsWith(github.event.comment.body, '/ready') ||
        startsWith(github.event.comment.body, '/approve') ||
        startsWith(github.event.comment.body, '/lgtm'))
     needs: ensure-labels
@@ -286,66 +285,6 @@ jobs:
             'filed    approved queued   claimed  done' \
             '```' \
             'Comment `/unclaim` to return to queue.')
-          gh issue comment "$ISSUE_URL" --body "$BODY"
-
-      - name: Handle /ready
-        if: startsWith(github.event.comment.body, '/ready')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_URL: ${{ github.event.issue.html_url }}
-          HAS_WRITE: ${{ steps.permission.outputs.has_write }}
-        run: |
-          if [ "$HAS_WRITE" != "true" ]; then
-            gh issue comment "$ISSUE_URL" --body "Only maintainers with write access can move an issue into the queue with \`/ready\`."
-            exit 0
-          fi
-
-          LABELS=$(gh issue view "$ISSUE_URL" --json labels --jq '[.labels[].name] | join(",")')
-          ISSUE_BODY=$(gh issue view "$ISSUE_URL" --json body --jq '.body // ""')
-          if ! echo "$LABELS" | grep -q "status/approved"; then
-            gh issue comment "$ISSUE_URL" --body "This issue needs \`status/approved\` before it can enter the queue."
-            exit 0
-          fi
-
-          ACCEPTANCE_SECTION=$(printf '%s\n' "$ISSUE_BODY" | awk '
-            /^###[[:space:]]/ {
-              if (in_section) exit
-              if ($0 ~ /^###[[:space:]]+.*Acceptance criteria[[:space:]]*$/) {
-                in_section=1
-                print
-                next
-              }
-            }
-            in_section { print }
-          ')
-          if [ -z "$ACCEPTANCE_SECTION" ]; then
-            gh issue comment "$ISSUE_URL" --body "This issue needs a dedicated \`### Acceptance criteria\` section in the body before it can enter the queue."
-            exit 0
-          fi
-          if ! printf '%s\n' "$ACCEPTANCE_SECTION" | grep -Eq '^[[:space:]]*-[[:space:]]\[( |x|X)\][[:space:]]+'; then
-            gh issue comment "$ISSUE_URL" --body "This issue needs at least one real checklist item under \`### Acceptance criteria\` before it can enter the queue."
-            exit 0
-          fi
-          if echo "$LABELS" | grep -q "queue/agent-ready"; then
-            gh issue comment "$ISSUE_URL" --body "This issue is already in the queue and ready for someone to \`/claim\`."
-            exit 0
-          fi
-
-          gh issue edit "$ISSUE_URL" --add-label "queue/agent-ready"
-          gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" --paginate \
-            --jq '.[] | select(.body | startswith("<!-- actionadon-pipeline -->")) | .id' \
-          | while read -r cid; do
-              [ -n "$cid" ] && gh api "repos/${REPO}/issues/comments/${cid}" --method DELETE
-            done
-          BODY=$(printf '%s\n' \
-            '<!-- actionadon-pipeline -->' \
-            '```text' \
-            '✓────────✓────────▶────────·────────·' \
-            'filed    approved queued   claimed  done' \
-            '```' \
-            'Comment `/claim` to take this.')
           gh issue comment "$ISSUE_URL" --body "$BODY"
 
       - name: Handle /approve and /lgtm

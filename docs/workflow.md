@@ -7,8 +7,8 @@
 | Stage | Meaning |
 |---|---|
 | `filed` | Issue opened and `needs-triage` applied |
-| `approved` | `status/approved` |
-| `queued` | `queue/agent-ready` |
+| `approved` | `status/approved` added by a maintainer |
+| `queued` | `queue/agent-ready` is added automatically with `status/approved` |
 | `claimed` | `queue/claimed` |
 | `done` | Issue closed |
 
@@ -18,8 +18,9 @@
 |---|---|---|
 | `/claim` | anyone | Adds `queue/claimed`, assigns the commenter |
 | `/unclaim` | assignee or write+ | Removes `queue/claimed`, unassigns |
-| `/ready` | write+ | Adds `queue/agent-ready` once `status/approved` and acceptance criteria are present |
 | `/approve` or `/lgtm` | write+ | Adds `lgtm` |
+
+Adding `status/approved` also adds `queue/agent-ready`. Maintainers are responsible for confirming acceptance criteria before applying `status/approved`.
 
 **`kind:agent-donation` issues:** write the report as a comment, cite sources, close the issue. Do not open a PR.
 
@@ -33,7 +34,7 @@ Copy `files/hive/hive-project.yaml.example` to `/etc/hive/hive-project.yaml` and
 |---|---|
 | `needs-triage` | Needs human review — set kind, priority, and area |
 | `status/discussing` | Not ready for the agent queue |
-| `status/approved` | Approved for the build queue — add acceptance criteria then `/ready` |
+| `status/approved` | Approved and queued by a maintainer — ready to claim |
 | `queue/agent-ready` | Has a spec, ready to claim — comment `/claim` |
 | `queue/claimed` | In active work — comment `/unclaim` to return |
 | `agent/blocked` | Blocked — needs human input before work can continue |
