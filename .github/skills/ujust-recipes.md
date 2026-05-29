@@ -98,3 +98,29 @@ Fall back to `sed 's/ /%20/g; s/:/%3A/g; s|/|%2F|g'` for systems without Python.
 
 Raptors travel in **kettles**, not packs. Use "kettle" in all raptor-related
 spinner messages and flavor text.
+
+---
+
+## jq -n for JSON file generation in just recipes
+
+When a just recipe needs to write a JSON file, use `jq -n` instead of a
+heredoc or printf. It handles all quoting/escaping correctly and supports
+variable interpolation via `--arg`:
+
+```bash
+USER_UID=$(id -u)
+jq -n \
+    --arg uid "$USER_UID" \
+    '{
+        "name": "My Config",
+        "path": ("/run/user/" + $uid + "/socket")
+    }' > output.json
+```
+
+Benefits over heredoc:
+- No just tokenizer issues
+- Correct JSON escaping guaranteed
+- Shell variables injected cleanly via --arg/--argjson
+- Output is always valid, parseable JSON
+
+Note: jq is available on all Bluefin DX systems.
