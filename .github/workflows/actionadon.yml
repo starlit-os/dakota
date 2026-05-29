@@ -44,7 +44,7 @@ jobs:
           }
           label "needs-triage" "d4c5f9" "Needs human review — set kind, priority, and area."
           label "status/discussing" "7c83fd" "Structured issue flow in progress; not ready for the agent queue yet."
-          label "status/approved" "2ea44f" "Approved and queued by a maintainer — ready to claim."
+          label "status/approved" "2ea44f" "Approved — ready for contributors."
           label "queue/agent-ready" "a467dc" "Has a spec, ready to claim — comment /claim."
           label "queue/claimed" "e8b86d" "In active work — comment /unclaim to return."
           label "lgtm" "0e8a16" "Maintainer approved — ready to merge."

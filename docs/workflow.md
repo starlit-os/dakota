@@ -20,7 +20,7 @@
 | `/unclaim` | assignee or write+ | Removes `queue/claimed`, unassigns |
 | `/approve` or `/lgtm` | write+ | Adds `lgtm` |
 
-Adding `status/approved` also adds `queue/agent-ready`. Maintainers are responsible for confirming acceptance criteria before applying `status/approved`.
+Adding `status/approved` also adds `queue/agent-ready`.
 
 **`kind:agent-donation` issues:** write the report as a comment, cite sources, close the issue. Do not open a PR.
 
@@ -34,7 +34,7 @@ Copy `files/hive/hive-project.yaml.example` to `/etc/hive/hive-project.yaml` and
 |---|---|
 | `needs-triage` | Needs human review — set kind, priority, and area |
 | `status/discussing` | Not ready for the agent queue |
-| `status/approved` | Approved and queued by a maintainer — ready to claim |
+| `status/approved` | Approved — ready for contributors |
 | `queue/agent-ready` | Has a spec, ready to claim — comment `/claim` |
 | `queue/claimed` | In active work — comment `/unclaim` to return |
 | `agent/blocked` | Blocked — needs human input before work can continue |
