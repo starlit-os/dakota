@@ -29,6 +29,7 @@ every future agent and contributor — not just you, and not just on one machine
 | Hardware testlab dev loop | [`testlab.md`](testlab.md) |
 | Hardware testlab one-time setup | [`testlab-setup.md`](testlab-setup.md) |
 | CI pipeline, remote cache, GHCR | [`ci.md`](ci.md) |
+| Actionadon lifecycle, issue queue, data donation | [`actionadon.md`](actionadon.md) |
 | Project overview and what Bluefin is | [`overview.md`](overview.md) |
 | ujust recipes in `files/just-overrides/` | [`.github/skills/ujust-recipes.md`](../../.github/skills/ujust-recipes.md) |
 | Installer (bootc-installer) | [`installer.md`](installer.md) |
