@@ -6,13 +6,17 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## Humans decide what gets built. Bots build it.
+        ## Humans decide what gets built. Contributors build it.
 
-        This is not a ticket system — it is a conversation between you and the people building Dakota. A maintainer will read this, decide if it fits the project's direction, and write acceptance criteria. Once that is done, a contributor or agent can pick it up and ship it.
+        This is not a ticket system — it is a conversation between you and the people building Dakota.
+        A maintainer will read this, decide if it fits the project's direction, and approve it.
+        Once approved, a contributor or agent can claim and ship it.
 
         **The bottleneck is almost never implementation. It is clarity.**
 
-        Agents can implement well-scoped work fast — sometimes the same day. But they can only act on what is clearly defined. An unclear feature request goes to **Speccing** and waits for a human to define it. Your two paragraphs below determine whether this ships this week or sits in the backlog.
+        Contributors can implement well-scoped work fast — sometimes the same day. But they can only
+        act on what is clearly defined. An unclear feature request waits for a human to define it.
+        Your two paragraphs below determine whether this ships this week or sits in the backlog.
 
         **Ask yourself before submitting:**
         - Can someone read this and know exactly what file to change?
@@ -86,6 +90,11 @@ body:
     attributes:
       value: |
         ---
-        A maintainer will add acceptance criteria before this enters the work queue. The clearer your proposal, the less back-and-forth before that happens — and the faster someone can ship it.
+        A maintainer will discuss and approve if this fits the project direction. Once approved,
+        it enters the build queue:
 
-        Once it ships, the community verifies it with `ujust verify <issue-number>`. Your feature, confirmed on real hardware.
+        ```
+        filed → discussed → approved → queued → claimed → done
+        ```
+
+        Once it ships, the community verifies it with `ujust verify <issue-number>`.

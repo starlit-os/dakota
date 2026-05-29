@@ -17,6 +17,16 @@ Comment `/claim` on an issue to take it. Actionadon assigns it and removes it fr
 
 ---
 
+## Data donation
+
+Dakota bugs are data donations. `ujust report` captures full system state to a user-owned gist before the issue opens. That report is the ground truth.
+
+The pipeline widget in every issue body reflects that donation: `report: attached` means full telemetry is available. `confirms: N` means N people hit it on real hardware. `verified: N/3` drives closure.
+
+**Agent rule:** If `report: attached`, read the gist before doing anything. If `confirms: N` is > 2, treat it as higher priority. Never close an issue at `done` with `verified: 0/3` without maintainer sign-off.
+
+Full details: `docs/feedback-loop.md` and `docs/skills/actionadon.md`.
+
 ## Mandatory gates
 
 Non-compliance = automatic rejection.

@@ -1,6 +1,6 @@
 name: "Bug report"
 description: "Something is broken. You are the only person who can confirm it."
-labels: ["type/bug", "status/discussing"]
+labels: ["type/bug"]
 type: "Bug"
 body:
   - type: markdown
@@ -103,4 +103,12 @@ body:
     attributes:
       value: |
         ---
-        A maintainer will triage this and assign it to the right epic. Once a fix ships, confirm it works on your hardware with `ujust verify <issue-number>` — your confirmation is what closes the loop and proves the fix works outside of CI.
+        Once you submit, a maintainer will triage and approve. A pipeline status comment will
+        appear on your issue showing exactly where it stands:
+
+        ```
+        filed → approved → queued → claimed → done
+        ```
+
+        When a fix ships in nightly, confirm it worked on your hardware with `ujust verify <issue-number>`.
+        Your confirmation is what closes the loop.
