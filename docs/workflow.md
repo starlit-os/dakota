@@ -10,7 +10,114 @@
 | `approved` | `status/approved` added by a maintainer |
 | `queued` | `queue/agent-ready` is added automatically with `status/approved` |
 | `claimed` | `queue/claimed` |
-| `done` | Issue closed |
+| `done` | Issue closed after three verifies or maintainer override |
+
+### Pipeline widget
+
+Actionadon keeps the pipeline widget in the issue body and rewrites it in place at every stage.
+
+#### Filed
+
+```text
+DAKOTA  ·  issue pipeline
+─────────────────────────────────────────────────
+  ▶  filed      report received
+  ·  approved   —
+  ·  queued     —
+  ·  claimed    —
+  ·  done       —
+─────────────────────────────────────────────────
+  report:       attached/missing  ·  confirms: N
+  area:         name              ·  priority: name
+  next action:  same bug? ujust confirm NNN
+```
+
+#### Approved
+
+```text
+DAKOTA  ·  issue pipeline
+─────────────────────────────────────────────────
+  ✓  filed      report received
+  ▶  approved   cleared for the build queue
+  ·  queued     —
+  ·  claimed    —
+  ·  done       —
+─────────────────────────────────────────────────
+  report:       attached/missing  ·  confirms: N
+  area:         name              ·  priority: name
+  next action:  comment /claim to take this
+```
+
+#### Queued
+
+```text
+DAKOTA  ·  issue pipeline
+─────────────────────────────────────────────────
+  ✓  filed      report received
+  ✓  approved   cleared for the build queue
+  ▶  queued     open for contributors
+  ·  claimed    —
+  ·  done       —
+─────────────────────────────────────────────────
+  report:       attached/missing  ·  confirms: N
+  area:         name              ·  priority: name
+  next action:  comment /claim to take this
+```
+
+#### Claimed
+
+```text
+DAKOTA  ·  issue pipeline
+─────────────────────────────────────────────────
+  ✓  filed      report received
+  ✓  approved   cleared for the build queue
+  ✓  queued     open for contributors
+  ▶  claimed    @username
+  ·  done       —
+─────────────────────────────────────────────────
+  report:       attached/missing  ·  confirms: N
+  area:         name              ·  priority: name
+  next action:  /unclaim to return to queue if stuck
+```
+
+#### Done
+
+```text
+DAKOTA  ·  issue pipeline
+─────────────────────────────────────────────────
+  ✓  filed      report received
+  ✓  approved   cleared for the build queue
+  ✓  queued     open for contributors
+  ✓  claimed    @username
+  ▶  done       fix shipped
+─────────────────────────────────────────────────
+  report:       attached/missing  ·  verified: N/3
+  area:         name              ·  priority: name
+  next action:  ujust verify NNN — three verifies closes the case
+```
+
+Metadata rows are pulled live from GitHub at every transition:
+
+- `report:` — gist URL present in the body shows `attached`; no gist URL shows `missing`
+- `confirms:` — count of comments containing `ujust confirm` on open issues
+- `verified:` — count of comments containing `ujust verify`, shown as `N/3` on closed issues
+- `area:` — extracted from `area/*` labels
+- `priority:` — extracted from `priority/*` labels
+
+### Triage signals
+
+- `report: attached` means the full telemetry bundle is already there. Prioritize it over issues without a report and do not ask for data already in the gist.
+- `confirms: N` means N distinct hardware instances reproduced it. Treat high counts as higher priority.
+- `verified: N/3` drives closure. Do not close the issue until it hits 3 or a maintainer explicitly overrides it.
+- High priority plus no assignee is a good immediate claim target.
+
+### Data donation pattern
+
+`ujust report` is a deliberate data donation. The reporter reviews the gist before filing, keeps ownership of it, and can delete it later. That is not telemetry.
+
+`ujust confirm` adds another hardware instance without opening a duplicate. `ujust verify` adds post-fix evidence on real hardware and moves the issue toward closure.
+
+**`kind:agent-donation` issues:** write the report as a comment, cite sources, close the issue. Do not open a PR.
 
 ## Actionadon bot
 
@@ -20,9 +127,11 @@
 | `/unclaim` | assignee or write+ | Removes `queue/claimed`, unassigns |
 | `/approve` or `/lgtm` | write+ | Adds `lgtm` |
 
-Adding `status/approved` also adds `queue/agent-ready`.
+The widget lives in the issue body and is updated in place. Zero pipeline comments. One edit per stage.
 
-**`kind:agent-donation` issues:** write the report as a comment, cite sources, close the issue. Do not open a PR.
+`<!-- actionadon-pipeline -->` is the sentinel block Actionadon uses to find the widget. Do not remove it by hand.
+
+Adding `status/approved`, or using `/approve` or `/lgtm`, also auto-queues the issue by adding `queue/agent-ready`.
 
 ## Hive
 
