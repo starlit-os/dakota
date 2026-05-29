@@ -12,8 +12,6 @@ sysroot and would cause build failures or unwanted pulls:
 
 These are policy flags separate from the version bump so they can be
 evaluated independently when updating the pipewire ref.
-
-See: projectbluefin/dakota#505
 ---
  elements/components/pipewire-base.bst | 4 ++++
  1 file changed, 4 insertions(+)
@@ -22,7 +20,12 @@ diff --git a/elements/components/pipewire-base.bst b/elements/components/pipewir
 index a38e15d02..b2f3a1234 100644
 --- a/elements/components/pipewire-base.bst
 +++ b/elements/components/pipewire-base.bst
-@@ -54,6 +54,10 @@ variables:
+@@ -49,20 +49,24 @@ variables:
+     -Dlibcanberra=disabled
+     -Dbluez5-codec-lc3plus=disabled
+     -Dlv2=disabled
+     -Dlibjack-path=%{libdir}
+     -Djack-devel=true
      -Dudevrulesdir=$(pkg-config --variable=udevdir udev)/rules.d
      -Dsession-managers=[]
      -Dlibffado=disabled
@@ -34,5 +37,13 @@ index a38e15d02..b2f3a1234 100644
 +    -Donnxruntime=disabled
  
  config:
+   install-commands:
+     (>):
+     - |
+       for module in '%{install-root}%{libdir}'/pipewire-0.3/*.so; do
+         if ! objdump -x "${module}" | grep -q 'NEEDED *libpipewire-module-'; then
+           patchelf --remove-rpath "${module}"
+         fi
+       done
 -- 
 2.54.0

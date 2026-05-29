@@ -5,8 +5,6 @@ Subject: [PATCH 07/11] pipewire: bump ref to 1.6.1
 
 Squashes the auto-updater's two step bumps (1.4.9 -> 1.6.0 -> 1.6.1)
 into a single ref change. Drop this patch once fdsdk ships >= 1.6.1.
-
-See: projectbluefin/dakota#505
 ---
  elements/components/pipewire-base.bst | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -15,7 +13,14 @@ diff --git a/elements/components/pipewire-base.bst b/elements/components/pipewir
 index a09759fdf..a38e15d02 100644
 --- a/elements/components/pipewire-base.bst
 +++ b/elements/components/pipewire-base.bst
-@@ -142,6 +142,6 @@ public:
+@@ -135,11 +135,11 @@ public:
+       - '%{debugdir}%{libdir}/pipewire-0.3/libpipewire-module-spa-node-factory.so.debug'
+       - '%{debugdir}%{libdir}/pipewire-0.3/libpipewire-module-spa-node.so.debug'
+       - '%{debugdir}%{libdir}/pipewire-0.3/libpipewire-module-zeroconf-discover.so.debug'
+ 
+   cpe:
+     product: pipewire
+ 
  sources:
  - kind: git_repo
    url: freedesktop:PipeWire/pipewire.git
