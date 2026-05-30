@@ -25,6 +25,26 @@ testsuite gates `:latest` promotion in all three image repos.
 
 ---
 
+
+## Org pipeline — projectbluefin
+
+### Repo map
+
+```
+common ──────────────────────────┐
+(shared OCI layer)               │
+                                 ▼
+bluefin  (main→stable)       ←── images ──→ testsuite (e2e gate)
+bluefin-lts (main→lts)       ←── images ──→ testsuite (e2e gate)
+dakota  (main→:latest)       ←── images ──→ testsuite (e2e gate)
+                                 │
+                                 ▼
+                                iso (installation media)
+```
+
+**Dakota's role:** builds Bluefin entirely from source using BuildStream 2 (freedesktop-sdk + gnome-build-meta). No RPMs. The full pipeline: PR → validate + e2e → merge queue → `:sha` → e2e gate → `:latest`.
+testsuite gates `:latest` promotion — `:latest` is never published without a passing e2e smoke test.
+
 ## Find something to work on
 
 | Time available | Link |
