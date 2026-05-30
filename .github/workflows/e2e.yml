@@ -29,7 +29,9 @@ on:
         required: false
         default: "smoke"
 
-permissions: read-all
+permissions:
+  contents: read
+  packages: write  # testsuite pushes desktop screenshot to GHCR
 
 concurrency:
   group: e2e-${{ github.ref }}
