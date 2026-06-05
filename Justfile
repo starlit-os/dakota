@@ -21,6 +21,8 @@ export OCI_IMAGE_CREATED := env("OCI_IMAGE_CREATED", "")
 export OCI_IMAGE_REVISION := env("OCI_IMAGE_REVISION", "")
 export OCI_IMAGE_VERSION := env("OCI_IMAGE_VERSION", "latest")
 
+import 'justfiles/sysexts.just'
+
 # ── BuildStream wrapper ──────────────────────────────────────────────
 # Runs any bst command inside the bst2 container via podman.
 # Defaults to `-o x86_64_v3 true --no-interactive` so local runs match CI.
