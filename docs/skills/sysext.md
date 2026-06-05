@@ -358,6 +358,62 @@ For the first Dakota sysexts, a plain directory artifact is enough. `systemd-sys
 
 Even when a sysext element only installs one prebuilt binary or writes one metadata file, BuildStream runs the element commands inside a sandbox that still needs `sh` and standard file utilities like `install`. For small prebuilt-binary sysext elements, `freedesktop-sdk.bst:bootstrap/bash.bst` plus `freedesktop-sdk.bst:bootstrap/coreutils.bst` is sufficient and much lighter than pulling a full runtime stack.
 
+### Multi-tool sysext bundles are easier to maintain when each tool has its own payload element (2026-06-05)
+
+For a bundle like `starlit-cli`, keep each upstream tool in its own `elements/sysext/<bundle>-<tool>.bst` payload element and compose them together in one top-level sysext element. That keeps per-tool version bumps and archive layout fixes local to one file, and avoids hiding bundle membership behind an extra `kind: stack` layer when a directory-form `kind: compose` output is the actual artifact.
+
+Use a bundle-specific host smoke recipe when the sysext exposes multiple commands. A single generic `command -v <name>` check is fine for one-binary bundles like Pangolin, but a collection sysext should explicitly validate each expected CLI.
+
+### `squashfs-tools` is a practical first `.raw` backend when the SDK already carries it (2026-06-05)
+
+If `freedesktop-sdk.bst:components/squashfs-tools.bst` is available, a naked squashfs image is the lowest-friction way to start a `.raw` sysext path. A `kind: script` element can stage the checked-out sysext tree at a fixed location such as `/sysroot` and run:
+
+```yaml
+- filename: sysext/<bundle>.bst
+  config:
+    location: /sysroot
+```
+
+```sh
+mksquashfs /sysroot "%{install-root}/<bundle>.raw" -noappend -all-root -no-progress
+```
+
+That yields a native `systemd-sysext`-consumable image without introducing host-side image-packing assumptions into the just recipes.
+
+### Sysupdate feeds for sysexts need both source and target `MatchPattern=` values (2026-06-05)
+
+When defining a `systemd-sysupdate` transfer for versioned sysext `.raw` files, specify `MatchPattern=` in **both** `[Source]` and `[Target]`. For regular-file targets, the target pattern is mandatory too, and it defines both how existing versions are discovered and how new downloaded versions are named.
+
+A practical sysext pattern is:
+
+```ini
+[Source]
+Type=url-file
+Path=https://example.invalid/starlit-cli
+MatchPattern=starlit-cli-@v-%a.raw
+
+[Target]
+Type=regular-file
+Path=/var/lib/extensions
+MatchPattern=starlit-cli-@v-%a.raw
+CurrentSymlink=/etc/extensions/starlit-cli.raw
+InstancesMax=2
+```
+
+For local smoke testing, the same target pattern works with a `regular-file` source pointing at a local feed directory. This is a good way to validate version naming and activation behavior before publishing any remote feed.
+
+### `systemd-sysupdate --definitions=` and `-C` are the safest ways to isolate sysext experiments (2026-06-05)
+
+Do not mix experimental sysext update definitions into the generic host update set. Put them in a dedicated component directory such as `/etc/sysupdate.starlit-cli.d/` and invoke them with `systemd-sysupdate -C starlit-cli ...`, or point `--definitions=` at a temporary directory while testing.
+
+That keeps the experiment self-contained and avoids accidental interaction with unrelated OS-level update definitions.
+
+### Shared private just helpers keep per-sysext sysupdate entry points small (2026-06-05)
+
+Once a bundle grows host-side `systemd-sysupdate` workflows, the public just targets become repetitive: install transfer, list versions, show status, update, vacuum, remove transfer, reset local state. Keep those shell implementations in private helpers in `justfiles/sysext.just` and let the per-bundle justfile pass only the component name and bundle-specific paths.
+
+This keeps `just --summary` readable, reduces copy/paste drift between sysexts, and makes it much easier to add the same host-side sysupdate lifecycle to the next bundle.
+
 ### `just bst artifact checkout` writes to the container path, not the host path (2026-06-05)
 
 Dakota's `just bst ...` wrapper runs inside the pinned `bst2` container with the repo mounted at `/src`. When checking out a sysext artifact to a host-visible path from a just recipe, pass the container path (for example `/src/.build-sysext/pangolin`), not the host path. Wrapping this in a dedicated just recipe avoids repeatedly getting the destination wrong.

@@ -39,7 +39,7 @@ _sysext-archive source_dir archive_path:
     tar -C "$(dirname "$SOURCE")" -czf "$ARCHIVE" "$(basename "$SOURCE")"
 
 [private]
-_sysext-host-install name source:
+_sysext-host-install name source probe_command:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -111,8 +111,8 @@ _sysext-host-install name source:
     echo "==> systemd-sysext status"
     systemd-sysext status || true
     echo ""
-    echo "==> {{name}} on PATH"
-    command -v {{name}} || true
+    echo "==> Probe command on PATH"
+    command -v {{probe_command}} || true
 
 [private]
 _sysext-host-smoke binary pass_name:
@@ -141,3 +141,135 @@ _sysext-host-remove name:
     echo "==> Removing {{name}} sysext..."
     $SUDO_CMD rm -rf /var/lib/extensions/{{name}}
     $SUDO_CMD systemctl restart systemd-sysext.service
+
+[private]
+_sysext-host-sysupdate-install-transfer component transfer_source transfer_directory transfer_filename:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    TRANSFER_SOURCE="{{transfer_source}}"
+
+    if [ ! -f "$TRANSFER_SOURCE" ]; then
+        echo "ERROR: ${TRANSFER_SOURCE} not found." >&2
+        echo "Generate the sysupdate feed and local transfer file first." >&2
+        exit 1
+    fi
+
+    SUDO_CMD=""
+    if [ "$(id -u)" -ne 0 ]; then
+        SUDO_CMD="sudo"
+    fi
+
+    echo "==> Installing sysupdate transfer for {{component}}..."
+    $SUDO_CMD install -d {{transfer_directory}}
+    $SUDO_CMD install -m0644 "$TRANSFER_SOURCE" {{transfer_filename}}
+
+[private]
+_sysext-host-sysupdate-list component:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "==> Listing {{component}} sysupdate versions..."
+    systemd-sysupdate --no-pager -C {{component}} list
+
+[private]
+_sysext-host-sysupdate-status component transfer_filename symlink_path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "==> Installed transfer definition"
+    if [ -f {{transfer_filename}} ]; then
+        echo "{{transfer_filename}}"
+    else
+        echo "(not installed)"
+    fi
+    echo ""
+
+    echo "==> Current symlink target"
+    if [ -L {{symlink_path}} ]; then
+        readlink -f {{symlink_path}} || true
+    else
+        echo "(no {{symlink_path}} symlink)"
+    fi
+    echo ""
+
+    echo "==> sysupdate versions"
+    systemd-sysupdate --no-pager -C {{component}} list || true
+    echo ""
+
+    echo "==> systemd-sysext status"
+    systemd-sysext status || true
+
+[private]
+_sysext-host-sysupdate-update component smoke_recipe:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    SUDO_CMD=""
+    if [ "$(id -u)" -ne 0 ]; then
+        SUDO_CMD="sudo"
+    fi
+
+    echo "==> Updating {{component}} via systemd-sysupdate..."
+    $SUDO_CMD systemd-sysupdate --no-pager -C {{component}} update
+    $SUDO_CMD systemctl restart systemd-sysext.service
+    just {{smoke_recipe}}
+
+[private]
+_sysext-host-sysupdate-vacuum component:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    SUDO_CMD=""
+    if [ "$(id -u)" -ne 0 ]; then
+        SUDO_CMD="sudo"
+    fi
+
+    echo "==> Vacuuming old {{component}} sysupdate versions..."
+    $SUDO_CMD systemd-sysupdate --no-pager -C {{component}} vacuum
+    echo ""
+    echo "==> Remaining {{component}} sysupdate versions"
+    systemd-sysupdate --no-pager -C {{component}} list
+
+[private]
+_sysext-host-sysupdate-remove-transfer component transfer_directory transfer_filename:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    SUDO_CMD=""
+    if [ "$(id -u)" -ne 0 ]; then
+        SUDO_CMD="sudo"
+    fi
+
+    echo "==> Removing {{component}} sysupdate transfer..."
+    $SUDO_CMD rm -f {{transfer_filename}}
+    $SUDO_CMD rmdir {{transfer_directory}} 2>/dev/null || true
+
+[private]
+_sysext-host-sysupdate-reset component transfer_directory transfer_filename symlink_path versioned_glob unpacked_path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    SUDO_CMD=""
+    if [ "$(id -u)" -ne 0 ]; then
+        SUDO_CMD="sudo"
+    fi
+
+    echo "==> Resetting local {{component}} sysupdate state..."
+
+    if command -v systemd-sysupdate >/dev/null 2>&1; then
+        $SUDO_CMD systemd-sysupdate --no-pager -C {{component}} vacuum || true
+    fi
+
+    $SUDO_CMD rm -f {{transfer_filename}}
+    $SUDO_CMD rmdir {{transfer_directory}} 2>/dev/null || true
+
+    $SUDO_CMD rm -f {{symlink_path}}
+    $SUDO_CMD rm -f {{versioned_glob}}
+    $SUDO_CMD rm -rf {{unpacked_path}}
+
+    $SUDO_CMD systemctl restart systemd-sysext.service
+
+    echo ""
+    echo "==> Post-reset sysext status"
+    systemd-sysext status || true

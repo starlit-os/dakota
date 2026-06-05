@@ -28,7 +28,7 @@ sysext-pangolin-host source=".build-sysext/pangolin":
 
 [group('sysext')]
 sysext-pangolin-host-install source=".build-sysext/pangolin":
-    just _sysext-host-install pangolin "{{source}}"
+    just _sysext-host-install pangolin "{{source}}" pangolin
 
 [group('sysext')]
 sysext-pangolin-host-smoke:
