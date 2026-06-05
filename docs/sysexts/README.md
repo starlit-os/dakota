@@ -7,9 +7,11 @@ This directory is for sysext-specific documentation that is useful to humans wor
 ## Current layout
 
 - [`pangolin.md`](pangolin.md) — current Pangolin CLI sysext, install/test flow, and future portability plan
+- [`starlit-cli.md`](starlit-cli.md) — CLI bundle sysext for `fish`, `bat`, and `eza`
 - `justfiles/sysexts.just` — top-level sysext recipe dispatcher imported by the root `Justfile`
 - `justfiles/sysext.just` — shared private helper recipes reused by per-sysext justfiles
 - `justfiles/sysext-pangolin.just` — Pangolin-specific sysext helper recipes
+- `justfiles/sysext-starlit-cli.just` — starlit-cli-specific sysext helper recipes
 - [`../../justfiles/templates/sysext-single-tool.just`](../../justfiles/templates/sysext-single-tool.just) — reusable helper recipe template for future single-tool sysext workflows
 
 ## Current Dakota approach
@@ -19,8 +21,9 @@ At the moment Dakota sysexts are:
 - built as **parallel BuildStream artifacts** under `elements/sysext/`
 - kept **out of the base image**
 - packaged first as **directory-form sysexts** rather than `.raw` images
+- beginning to grow an **experimental `.raw` + sysupdate feed path** for bundles that are ready to test versioned delivery
 
-That keeps the first experiments additive and low-risk.
+That keeps the first experiments additive and low-risk while still letting individual bundles start the next phase.
 
 ## Why directory-form first
 

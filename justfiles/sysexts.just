@@ -5,3 +5,4 @@
 
 import 'sysext.just'
 import 'sysext-pangolin.just'
+import 'sysext-starlit-cli.just'

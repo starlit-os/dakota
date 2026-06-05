@@ -41,7 +41,7 @@ sysext-<name>-host source="<source-dir>":
 
 [group('sysext')]
 sysext-<name>-host-install source="<source-dir>":
-    just _sysext-host-install <name> "{{source}}"
+    just _sysext-host-install <name> "{{source}}" <binary>
 
 [group('sysext')]
 sysext-<name>-host-smoke:
