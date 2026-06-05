@@ -22,6 +22,7 @@ Every agent session produces two outputs: **the work** (the PR) and **the learni
 | Updating a package version | [`update-refs.md`](update-refs.md) |
 | BST YAML reference, variables, kinds | [`buildstream.md`](buildstream.md) |
 | Debugging a build failure | [`debugging.md`](debugging.md) |
+| System extension (`sysext`) bundles | [`sysext.md`](sysext.md) |
 | OCI image layer assembly | [`oci-layers.md`](oci-layers.md) |
 | Junction overrides (when to, when not to) | [`bst-overrides.md`](bst-overrides.md) |
 | Patching junction elements | [`patch-junctions.md`](patch-junctions.md) |

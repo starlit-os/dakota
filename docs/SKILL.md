@@ -15,6 +15,7 @@ If your first draft says "use dnf/RPM/COPR" or "edit the Containerfile to add a 
 | Update a package version | `docs/skills/update-refs.md` |
 | Understand BST element syntax | `docs/skills/buildstream.md` |
 | Debug a build failure | `docs/skills/debugging.md` |
+| Investigate or build a system extension (`sysext`) bundle | `docs/skills/sysext.md` |
 | Understand OCI layer assembly | `docs/skills/oci-layers.md` |
 | Work with junction overrides | `docs/skills/bst-overrides.md` |
 | Add/rebase a patch | `docs/skills/patch-junctions.md` |
