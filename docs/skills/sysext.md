@@ -442,6 +442,21 @@ Use this decision rule:
 
 If any of these stop being true, prefer single-tool sysexts instead of continuing to grow the collection.
 
+### Use `boot-vm` rather than `boot-fast` for first-pass sysext persistence testing (2026-06-06)
+
+For manual sysext validation in a VM, prefer `just boot-vm` for the initial test loop. Sysexts are installed into `/var/lib/extensions`, and one normal reboot is part of the feature surface, so a disk-backed VM gives a clearer validation path than an ephemeral virtiofs boot.
+
+A good first-pass sequence is:
+
+1. `just build default`
+2. `just generate-bootable-image default`
+3. `just boot-vm`
+4. transfer sysext archive into the guest
+5. install under `/var/lib/extensions/<name>`
+6. restart `systemd-sysext.service`
+7. run the command smoke test
+8. reboot once and re-run the same checks
+
 ### `just bst artifact checkout` writes to the container path, not the host path (2026-06-05)
 
 Dakota's `just bst ...` wrapper runs inside the pinned `bst2` container with the repo mounted at `/src`. When checking out a sysext artifact to a host-visible path from a just recipe, pass the container path (for example `/src/.build-sysext/pangolin`), not the host path. Wrapping this in a dedicated just recipe avoids repeatedly getting the destination wrong.
