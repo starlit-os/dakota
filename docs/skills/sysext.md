@@ -430,6 +430,18 @@ install -Dm755 pass-cli "%{install-root}%{bindir}/pass-cli"
 
 That keeps the installed PATH entry stable across architectures while still pinning the correct per-arch upstream asset.
 
+### Collection sysexts should stay small and themeable (2026-06-06)
+
+A collection sysext such as `starlit-cli` is worth keeping only while it still tells a clear user-facing story. For the current `fish` + `bat` + `eza` bundle, the story is "better terminal UX", which is coherent enough to justify one artifact and one install path.
+
+Use this decision rule:
+
+1. Do the tools form one clear user-facing bundle?
+2. Is one install flow more valuable than per-tool choice?
+3. Can they reasonably share release cadence and compatibility risk?
+
+If any of these stop being true, prefer single-tool sysexts instead of continuing to grow the collection.
+
 ### `just bst artifact checkout` writes to the container path, not the host path (2026-06-05)
 
 Dakota's `just bst ...` wrapper runs inside the pinned `bst2` container with the repo mounted at `/src`. When checking out a sysext artifact to a host-visible path from a just recipe, pass the container path (for example `/src/.build-sysext/pangolin`), not the host path. Wrapping this in a dedicated just recipe avoids repeatedly getting the destination wrong.
