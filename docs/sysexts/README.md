@@ -7,10 +7,12 @@ This directory is for sysext-specific documentation that is useful to humans wor
 ## Current layout
 
 - [`pangolin.md`](pangolin.md) — current Pangolin CLI sysext, install/test flow, and future portability plan
+- [`proton-pass-cli.md`](proton-pass-cli.md) — single-tool sysext for Proton Pass CLI
 - [`starlit-cli.md`](starlit-cli.md) — CLI bundle sysext for `fish`, `bat`, and `eza`
 - `justfiles/sysexts.just` — top-level sysext recipe dispatcher imported by the root `Justfile`
 - `justfiles/sysext.just` — shared private helper recipes reused by per-sysext justfiles
 - `justfiles/sysext-pangolin.just` — Pangolin-specific sysext helper recipes
+- `justfiles/sysext-proton-pass-cli.just` — Proton Pass CLI-specific sysext helper recipes
 - `justfiles/sysext-starlit-cli.just` — starlit-cli-specific sysext helper recipes
 - [`../../justfiles/templates/sysext-single-tool.just`](../../justfiles/templates/sysext-single-tool.just) — reusable helper recipe template for future single-tool sysext workflows
 

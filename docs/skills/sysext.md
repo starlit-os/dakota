@@ -414,6 +414,22 @@ Once a bundle grows host-side `systemd-sysupdate` workflows, the public just tar
 
 This keeps `just --summary` readable, reduces copy/paste drift between sysexts, and makes it much easier to add the same host-side sysupdate lifecycle to the next bundle.
 
+### Single-file upstream assets can still install under a clean command name (2026-06-05)
+
+Some upstream release assets include the target architecture in the filename itself, such as `pass-cli-linux-x86_64`, even though the intended command name is just `pass-cli`. For single-tool sysexts built from `kind: remote` sources, set `filename:` to a stable local staging name and install that to the final command path:
+
+```yaml
+sources:
+- kind: remote
+  filename: pass-cli
+```
+
+```yaml
+install -Dm755 pass-cli "%{install-root}%{bindir}/pass-cli"
+```
+
+That keeps the installed PATH entry stable across architectures while still pinning the correct per-arch upstream asset.
+
 ### `just bst artifact checkout` writes to the container path, not the host path (2026-06-05)
 
 Dakota's `just bst ...` wrapper runs inside the pinned `bst2` container with the repo mounted at `/src`. When checking out a sysext artifact to a host-visible path from a just recipe, pass the container path (for example `/src/.build-sysext/pangolin`), not the host path. Wrapping this in a dedicated just recipe avoids repeatedly getting the destination wrong.
