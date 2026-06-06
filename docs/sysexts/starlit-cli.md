@@ -64,7 +64,7 @@ This is the first step toward a `systemd-sysupdate`-managed delivery flow withou
 Recommended:
 
 ```bash
-mise exec -- just sysext-starlit-cli-raw
+just sysext-starlit-cli-raw
 ```
 
 That produces:
@@ -81,7 +81,7 @@ That produces:
 Example:
 
 ```bash
-mise exec -- just sysext-starlit-cli-sysupdate-feed 0.1.0
+just sysext-starlit-cli-sysupdate-feed 0.1.0
 ```
 
 That writes:
@@ -160,9 +160,9 @@ The repo now includes host-side recipes for installing the generated local trans
 Recommended local smoke path on a Dakota host:
 
 ```bash
-mise exec -- just sysext-starlit-cli-raw
-mise exec -- just sysext-starlit-cli-sysupdate-feed 0.1.0
-mise exec -- just sysext-starlit-cli-host-sysupdate
+just sysext-starlit-cli-raw
+just sysext-starlit-cli-sysupdate-feed 0.1.0
+just sysext-starlit-cli-host-sysupdate
 ```
 
 This assumes the host has `systemd-sysupdate` available. The recipe installs only the transfer definition; the staged `.raw` file remains in the working tree feed directory you generated locally.
@@ -170,7 +170,7 @@ This assumes the host has `systemd-sysupdate` available. The recipe installs onl
 If you repeat the smoke flow with multiple versions, use:
 
 ```bash
-mise exec -- just sysext-starlit-cli-host-sysupdate-vacuum
+just sysext-starlit-cli-host-sysupdate-vacuum
 ```
 
 That delegates cleanup to `systemd-sysupdate vacuum`, which is safer than manually deleting versioned files under `/var/lib/extensions` because it respects the transfer definition's naming and retention rules.
@@ -178,13 +178,13 @@ That delegates cleanup to `systemd-sysupdate vacuum`, which is safer than manual
 For a quick consolidated view of the current host state, use:
 
 ```bash
-mise exec -- just sysext-starlit-cli-host-sysupdate-status
+just sysext-starlit-cli-host-sysupdate-status
 ```
 
 To return the host to a clean slate for another local test cycle, use:
 
 ```bash
-mise exec -- just sysext-starlit-cli-host-sysupdate-reset
+just sysext-starlit-cli-host-sysupdate-reset
 ```
 
 This intentionally only removes `starlit-cli`-specific state under `/etc/extensions`, `/etc/sysupdate.starlit-cli.d`, and `/var/lib/extensions`.
@@ -209,8 +209,8 @@ The recipes are split by environment:
 Recommended on a build machine:
 
 ```bash
-mise exec -- just sysext-starlit-cli
-mise exec -- just sysext-starlit-cli-archive
+just sysext-starlit-cli
+just sysext-starlit-cli-archive
 ```
 
 ### Dakota target host
@@ -223,8 +223,8 @@ mise exec -- just sysext-starlit-cli-archive
 Recommended on a Dakota host:
 
 ```bash
-mise exec -- just sysext-starlit-cli-host-install /path/to/starlit-cli
-mise exec -- just sysext-starlit-cli-host-smoke
+just sysext-starlit-cli-host-install /path/to/starlit-cli
+just sysext-starlit-cli-host-smoke
 ```
 
 The `source` argument may point to either:
@@ -237,20 +237,20 @@ The `source` argument may point to either:
 ### Build
 
 ```bash
-mise exec -- just bst build sysext/starlit-cli.bst
+just bst build sysext/starlit-cli.bst
 ```
 
 ### Check out the artifact
 
 ```bash
 rm -rf .build-sysext/starlit-cli
-mise exec -- just bst artifact checkout sysext/starlit-cli.bst --directory /src/.build-sysext/starlit-cli
+just bst artifact checkout sysext/starlit-cli.bst --directory /src/.build-sysext/starlit-cli
 ```
 
 ### Archive for transfer
 
 ```bash
-mise exec -- just sysext-starlit-cli-archive
+just sysext-starlit-cli-archive
 ```
 
 That writes:
@@ -266,7 +266,7 @@ The directory name matters: it should match `extension-release.starlit-cli`.
 If you are using the helper recipe:
 
 ```bash
-mise exec -- just sysext-starlit-cli-host-install .build-sysext/starlit-cli
+just sysext-starlit-cli-host-install .build-sysext/starlit-cli
 ```
 
 Or, if you are installing manually from a checked-out directory:

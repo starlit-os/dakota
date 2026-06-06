@@ -53,8 +53,8 @@ The recipes are split by environment:
 Recommended on a build machine:
 
 ```bash
-mise exec -- just sysext-pangolin
-mise exec -- just sysext-pangolin-archive
+just sysext-pangolin
+just sysext-pangolin-archive
 ```
 
 ### Dakota target host
@@ -67,8 +67,8 @@ mise exec -- just sysext-pangolin-archive
 Recommended on a Dakota host:
 
 ```bash
-mise exec -- just sysext-pangolin-host-install /path/to/pangolin
-mise exec -- just sysext-pangolin-host-smoke
+just sysext-pangolin-host-install /path/to/pangolin
+just sysext-pangolin-host-smoke
 ```
 
 The `source` argument may point to either:
@@ -83,7 +83,7 @@ If you need the lower-level flow, the helper recipes above wrap these steps.
 ### Build
 
 ```bash
-mise exec -- just bst build sysext/pangolin.bst
+just bst build sysext/pangolin.bst
 ```
 
 ### Check out the artifact
@@ -94,7 +94,7 @@ Example:
 
 ```bash
 rm -rf .build-sysext/pangolin
-mise exec -- just bst artifact checkout sysext/pangolin.bst --directory /src/.build-sysext/pangolin
+just bst artifact checkout sysext/pangolin.bst --directory /src/.build-sysext/pangolin
 ```
 
 After that, the host working tree will contain:
@@ -108,7 +108,7 @@ After that, the host working tree will contain:
 To create a transport-friendly archive:
 
 ```bash
-mise exec -- just sysext-pangolin-archive
+just sysext-pangolin-archive
 ```
 
 That writes:
@@ -124,7 +124,7 @@ The directory name matters: it should match `extension-release.pangolin`.
 If you are using the helper recipe:
 
 ```bash
-mise exec -- just sysext-pangolin-host-install .build-sysext/pangolin
+just sysext-pangolin-host-install .build-sysext/pangolin
 ```
 
 Or, if you are installing manually from a checked-out directory:

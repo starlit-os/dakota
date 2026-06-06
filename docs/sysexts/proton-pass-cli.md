@@ -53,8 +53,8 @@ The recipes are split by environment:
 Recommended on a build machine:
 
 ```bash
-mise exec -- just sysext-proton-pass-cli
-mise exec -- just sysext-proton-pass-cli-archive
+just sysext-proton-pass-cli
+just sysext-proton-pass-cli-archive
 ```
 
 ### Dakota target host
@@ -67,8 +67,8 @@ mise exec -- just sysext-proton-pass-cli-archive
 Recommended on a Dakota host:
 
 ```bash
-mise exec -- just sysext-proton-pass-cli-host-install /path/to/proton-pass-cli
-mise exec -- just sysext-proton-pass-cli-host-smoke
+just sysext-proton-pass-cli-host-install /path/to/proton-pass-cli
+just sysext-proton-pass-cli-host-smoke
 ```
 
 The `source` argument may point to either:
@@ -81,20 +81,20 @@ The `source` argument may point to either:
 ### Build
 
 ```bash
-mise exec -- just bst build sysext/proton-pass-cli.bst
+just bst build sysext/proton-pass-cli.bst
 ```
 
 ### Check out the artifact
 
 ```bash
 rm -rf .build-sysext/proton-pass-cli
-mise exec -- just bst artifact checkout sysext/proton-pass-cli.bst --directory /src/.build-sysext/proton-pass-cli
+just bst artifact checkout sysext/proton-pass-cli.bst --directory /src/.build-sysext/proton-pass-cli
 ```
 
 ### Archive for transfer
 
 ```bash
-mise exec -- just sysext-proton-pass-cli-archive
+just sysext-proton-pass-cli-archive
 ```
 
 That writes:
@@ -110,7 +110,7 @@ The directory name matters: it should match `extension-release.proton-pass-cli`.
 If you are using the helper recipe:
 
 ```bash
-mise exec -- just sysext-proton-pass-cli-host-install .build-sysext/proton-pass-cli
+just sysext-proton-pass-cli-host-install .build-sysext/proton-pass-cli
 ```
 
 Or, if you are installing manually from a checked-out directory:
