@@ -23,6 +23,8 @@ dakota  (main→testing→latest/stable) ←── images ──→ testsuite (e
 Each image repo pulls `ghcr.io/projectbluefin/common:latest` as a base layer.
 testsuite gates `:testing` promotion nightly and `:latest`/`:stable` promotion weekly.
 
+**`elements/bluefin/common.bst` strips bluefin-only content from common.** Any file added to `common/system_files/shared/` that does not apply to a fresh dakota install must be explicitly `rm -f`'d in the `install-commands` block of that element. Current stripped files: `rechunker-group-fix` script, service, and preset (chunka migration aid — not needed on fresh dakota).
+
 ---## Data donation
 
 Dakota bugs are data donations. `ujust report` captures full system state to a user-owned gist before the issue opens. That report is the ground truth.
