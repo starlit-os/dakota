@@ -174,3 +174,33 @@ sources:
 ```
 
 This pattern is used in `tailscale.bst`, `glow.bst`, `gum.bst`, and `fzf.bst`.
+
+### Generate fish completions at build time for tools that don't ship them (2026-06-07)
+
+Many CLI tools don't include fish completions in their release tarballs but can generate them via a subcommand. Instead of hand-writing or fetching external completion files, run the binary itself during the BuildStream build:
+
+```yaml
+config:
+  install-commands:
+  - |
+    install -Dm755 tool "%{install-root}%{bindir}/tool"
+  - |
+    ./tool gen-completions --shell fish | install -Dm644 /dev/stdin "%{install-root}%{datadir}/fish/vendor_completions.d/tool.fish"
+  - |
+    %{install-extra}
+```
+
+**Common generation commands:**
+| Tool | Command |
+|------|---------|
+| `atuin` | `./atuin gen-completions --shell fish` |
+| `starship` | `./starship completions fish` |
+| `usage` | `./usage fish` |
+| `gh` | `./bin/gh completion -s fish` |
+| `mise` | `./mise completions fish` |
+
+**Key points:**
+- The binary is available in the build directory after tar extraction (flat tarballs: `./tool`; nested: `./bin/tool`)
+- Pipe to `install -Dm644 /dev/stdin` to write directly to the fish vendor completions directory
+- The `fish` completion command may differ from the tool's `init` or `activate` command (e.g., `atuin init fish` returns empty, but `atuin gen-completions --shell fish` works)
+- Some tools ship completions directly in the tarball (bat, fd, chezmoi, zoxide, eza) — check before adding generation commands

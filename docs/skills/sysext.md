@@ -472,3 +472,85 @@ Sysext handoff between machines is easier if the target-host install recipe acce
 ### Keep a small sysext dispatcher and split per-extension justfiles (2026-06-05)
 
 As sysext support grows, a single monolithic sysext justfile becomes hard to maintain. Keep one top-level dispatcher (for example `justfiles/sysexts.just`) imported by the root `Justfile`, keep shared private helper recipes in a common file (for example `justfiles/sysext.just`), and put each extension's user-facing workflow in its own file (for example `justfiles/sysext-pangolin.just`).
+
+### Split desktop sysexts at the host-integration boundary, not the branding boundary (2026-06-07)
+
+A desktop-oriented worktree may look like one branded feature set, but that does not mean it should ship as one sysext. If the payload naturally breaks into different host contracts — for example a session/compositor, a shell UI, and a launcher/service — prefer one sysext per integration boundary.
+
+A good decision rule is:
+
+1. Does this payload create or modify a login/session surface?
+2. Does it provide a shell/UI layer on top of an existing session?
+3. Does it provide a separately useful launcher, daemon, or background service?
+
+If the answers land in different categories, split them. This keeps validation simpler, avoids coupled release cadence, and makes the user-facing installation story easier to explain.
+
+### Generate fish completions at build time for tools that don't ship them (2026-06-07)
+
+Many pre-built CLI tools don't include fish completions in their release tarballs but can generate them via a subcommand. Instead of hand-writing or fetching external completion files, run the binary itself during the BuildStream build:
+
+```yaml
+config:
+  install-commands:
+  - |
+    install -Dm755 tool "%{install-root}%{bindir}/tool"
+  - |
+    ./tool gen-completions --shell fish | install -Dm644 /dev/stdin "%{install-root}%{datadir}/fish/vendor_completions.d/tool.fish"
+  - |
+    %{install-extra}
+```
+
+**Generation commands discovered:**
+| Tool | Command |
+|------|---------|
+| `atuin` | `./atuin gen-completions --shell fish` |
+| `starship` | `./starship completions fish` |
+| `usage` | `./usage fish` |
+| `gh` | `./bin/gh completion -s fish` |
+| `mise` | `./mise completions fish` |
+
+**Key points:**
+- The binary is available in the build directory after tar extraction (flat tarballs: `./tool`; nested: `./bin/tool`)
+- Pipe to `install -Dm644 /dev/stdin` to write directly to the fish vendor completions directory
+- The `fish` completion command may differ from the tool's `init` or `activate` command (e.g., `atuin init fish` returns empty, but `atuin gen-completions --shell fish` works)
+- Some tools ship completions directly in the tarball (bat, fd, chezmoi, zoxide, eza) — check before adding generation commands
+
+### BuildStream tar extraction strips single top-level directories (2026-06-07)
+
+When a tarball contains a single top-level directory (e.g., `bat-v0.26.1/` containing `bat` and `autocomplete/`), BuildStream automatically strips that directory and places its contents at the root of the build staging area. Install paths should reference the inner files directly (e.g., `bat` or `autocomplete/bat.fish`).
+
+When a tarball has multiple root-level files/dirs (flat structure, e.g., `starship`, `README.md`, `LICENSE` all at the root), you must add `base-dir: ""` to the `tar` source to tell BuildStream not to try stripping:
+
+```yaml
+sources:
+- kind: tar
+  base-dir: ""
+  url: ...
+  ref: ...
+```
+
+**Observed tarball structures:**
+| Tool | Structure | `base-dir` needed? |
+|------|-----------|-------------------|
+| `gh` | `gh_2.93.0_linux_amd64/bin/gh` | No (single top-level dir stripped) |
+| `mise` | `mise-v2026.6.1/mise/bin/mise` | No (single top-level dir stripped) |
+| `bat` | `bat-v0.26.1/bat` + `autocomplete/` | No (single top-level dir stripped) |
+| `fd` | `fd-v10.4.2/fd` + `autocomplete/` | No (single top-level dir stripped) |
+| `fnox` | `fnox` (flat) | Yes: `base-dir: ""` |
+| `starship` | `starship` (flat) | Yes: `base-dir: ""` |
+| `usage` | `usage` (flat) | Yes: `base-dir: ""` |
+| `zoxide` | `zoxide` (flat) | Yes: `base-dir: ""` |
+
+### Metadata elements must not collide with binary install paths (2026-06-07)
+
+When a sysext bundle has separate `-cli` and `-metadata` elements, ensure the metadata element installs `extension-release` files to the correct path: `%{indep-libdir}/extension-release.d/extension-release.<name>`. A typo in the install path can overwrite the actual CLI binary with plain text metadata.
+
+**Bug example:** `starlit-cli-atuin-metadata.bst` used `"%{bindir}/atuin"` as the destination for the `extension-release` file, which clobbered the ELF binary installed by `starlit-cli-atuin-cli.bst`. The fix was to use the correct metadata path:
+
+```yaml
+install -Dm644 /dev/stdin "%{install-root}%{indep-libdir}/extension-release.d/extension-release.atuin" <<EOF
+ID=bluefin-dakota
+ARCHITECTURE=%{systemd-arch}
+VERSION_ID=20260530
+EOF
+```
