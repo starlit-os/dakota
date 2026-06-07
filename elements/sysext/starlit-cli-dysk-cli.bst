@@ -21,10 +21,9 @@ config:
   install-commands:
   - |
     bsdtar --no-same-owner -xvf dysk_3.6.1.zip 'build/*/dysk'
-    (?)
-    - arch == "x86_64":
-        install -Dm755 build/x86_64-unknown-linux-musl/dysk "%{install-root}%{bindir}/dysk"
-    - arch == "aarch64":
-        install -Dm755 build/aarch64-unknown-linux-musl/dysk "%{install-root}%{bindir}/dysk"
+    case "$(uname -m)" in
+      x86_64)  install -Dm755 build/x86_64-unknown-linux-musl/dysk "%{install-root}%{bindir}/dysk" ;;
+      aarch64) install -Dm755 build/aarch64-unknown-linux-musl/dysk "%{install-root}%{bindir}/dysk" ;;
+    esac
   - |
     %{install-extra}
