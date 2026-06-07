@@ -28,3 +28,5 @@ files/xattr-db/
 files/fakecap/fakecap-restore
 files/fakecap/fakecap.so
 .mise.local.toml
+
+.build-sysext/
