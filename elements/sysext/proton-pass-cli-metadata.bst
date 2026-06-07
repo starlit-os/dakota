@@ -15,7 +15,7 @@ config:
     install -Dm644 /dev/stdin "%{install-root}%{indep-libdir}/extension-release.d/extension-release.proton-pass-cli" <<EOF
     ID=bluefin-dakota
     ARCHITECTURE=%{systemd-arch}
-    VERSION_ID=0
+    VERSION_ID=20260530
     EOF
   - |
     %{install-extra}
