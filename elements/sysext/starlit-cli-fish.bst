@@ -25,4 +25,24 @@ config:
   - |
     install -Dm755 fish "%{install-root}%{bindir}/fish"
   - |
+    # atuin activation
+    install -Dm644 /dev/stdin "%{install-root}%{datadir}/fish/vendor_conf.d/atuin.fish" <<'EOF'
+    atuin init fish | source
+    EOF
+  - |
+    # mise activation
+    install -Dm644 /dev/stdin "%{install-root}%{datadir}/fish/vendor_conf.d/mise.fish" <<'EOF'
+    mise activate fish | source
+    EOF
+  - |
+    # starship activation
+    install -Dm644 /dev/stdin "%{install-root}%{datadir}/fish/vendor_conf.d/starship.fish" <<'EOF'
+    starship init fish | source
+    EOF
+  - |
+    # zoxide activation
+    install -Dm644 /dev/stdin "%{install-root}%{datadir}/fish/vendor_conf.d/zoxide.fish" <<'EOF'
+    zoxide init fish | source
+    EOF
+  - |
     %{install-extra}
