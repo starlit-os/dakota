@@ -1,6 +1,12 @@
 name: Publish sysext bundles
 
 on:
+  push:
+    branches:
+      - starlit-sysexts
+    paths:
+      - "elements/sysext/**"
+      - ".github/workflows/sysext-publish.yml"
   workflow_dispatch:
     inputs:
       bundle:
@@ -12,12 +18,6 @@ on:
           - starlit-cli
           - pangolin
           - proton-pass-cli
-  workflow_run:
-    workflows: ["Build Bluefin dakota"]
-    types: [completed]
-    branches:
-      - main
-      - "gh-readonly-queue/main/**"
 
 permissions:
   contents: read
@@ -39,21 +39,13 @@ jobs:
       sha: ${{ steps.context.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
       bundle: ${{ steps.bundle.outputs.bundle }}
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event != 'pull_request' &&
-       (github.event.workflow_run.head_branch == 'main' ||
-        startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/')))
     steps:
-      - name: Resolve build SHA
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Resolve context
         id: context
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Determine version string
         id: version
