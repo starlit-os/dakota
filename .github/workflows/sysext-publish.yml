@@ -1,0 +1,221 @@
+name: Publish sysext bundles
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle:
+        description: "Sysext bundle to publish"
+        required: false
+        default: "starlit-cli"
+        type: choice
+        options:
+          - starlit-cli
+          - pangolin
+          - proton-pass-cli
+  workflow_run:
+    workflows: ["Build Bluefin dakota"]
+    types: [completed]
+    branches:
+      - main
+      - "gh-readonly-queue/main/**"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: publish-sysext
+  cancel-in-progress: false
+
+env:
+  R2_BUCKET: ${{ vars.R2_SYSEXT_BUCKET }}
+  R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+
+jobs:
+  # ── Resolve context ───────────────────────────────────────────────────────
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.context.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
+      bundle: ${{ steps.bundle.outputs.bundle }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request' &&
+       (github.event.workflow_run.head_branch == 'main' ||
+        startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/')))
+    steps:
+      - name: Resolve build SHA
+        id: context
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine version string
+        id: version
+        run: echo "version=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Determine bundle to publish
+        id: bundle
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "bundle=${{ inputs.bundle }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "bundle=starlit-cli" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Build and upload .raw ────────────────────────────────────────────────
+  # NOTE: GitHub runners are x86_64, so this only produces x86-64 .raw files.
+  # Add arm64 runners (or cross-build support) when aarch64 sysexts are needed.
+  build:
+    needs: setup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.setup.outputs.sha }}
+
+      - name: Setup runner
+        uses: projectbluefin/actions/bootc-build/setup-runner@95dc404b7c69ad65889e3f3bf49ecba5cd3018e6 # v1.1.0
+        with:
+          storage-backend: btrfs
+          update-podman: true
+          install-tools: '["just"]'
+
+      - name: Generate BST fetch config
+        env:
+          CASD_CLIENT_CERT: ${{ vars.CASD_CLIENT_CERT }}
+          CASD_CLIENT_KEY: ${{ secrets.CASD_CLIENT_KEY }}
+        uses: ./.github/actions/generate-bst-ci-config
+        with:
+          enable-remote-execution: "false"
+          enable-push: "false"
+
+      - name: Build sysext .raw
+        env:
+          BST_FLAGS: -o x86_64_v3 true --no-interactive --config /src/buildstream-ci.conf
+          SYSEXT_BUNDLE: ${{ needs.setup.outputs.bundle }}
+        run: |
+          just "sysext-${SYSEXT_BUNDLE}-raw"
+
+      - name: Upload .raw to R2
+        env:
+          SYSEXT_BUNDLE: ${{ needs.setup.outputs.bundle }}
+          VERSION: ${{ needs.setup.outputs.version }}
+          ARCH: x86-64
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          VERSIONED_NAME="${SYSEXT_BUNDLE}-${VERSION}-x86-64.raw"
+          BUILD_DIR=".build-sysext/${SYSEXT_BUNDLE}-raw"
+
+          # Install rclone
+          curl -sSfL https://rclone.org/install.sh | sudo bash
+
+          RCLONE_CONFIG="/tmp/rclone.conf"
+          cat > "$RCLONE_CONFIG" <<EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          EOF
+
+          rclone --config "$RCLONE_CONFIG" copy "${BUILD_DIR}/${SYSEXT_BUNDLE}.raw" \
+            "r2:${R2_BUCKET}/${VERSIONED_NAME}" \
+            --progress \
+            --s3-no-check-bucket
+
+          echo "Uploaded ${VERSIONED_NAME}"
+
+      - name: Publish summary
+        run: |
+          echo "## Sysext .raw published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Bundle**: ${{ needs.setup.outputs.bundle }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Version**: ${{ needs.setup.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Arch**: x86-64" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **File**: ${{ needs.setup.outputs.bundle }}-${{ needs.setup.outputs.version }}-x86-64.raw" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Generate and upload SHA256SUMS index ─────────────────────────────────
+  # Runs after both arch builds complete. Downloads all .raw files for the
+  # bundle from R2, generates a combined SHA256SUMS, and uploads it.
+  # This avoids race conditions from parallel matrix jobs.
+  generate-index:
+    needs: [setup, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Download .raw files and generate SHA256SUMS
+        env:
+          SYSEXT_BUNDLE: ${{ needs.setup.outputs.bundle }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          # Install rclone
+          curl -sSfL https://rclone.org/install.sh | sudo bash
+
+          RCLONE_CONFIG="/tmp/rclone.conf"
+          cat > "$RCLONE_CONFIG" <<EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          EOF
+
+          # Download all .raw files for this bundle
+          mkdir -p /tmp/sysext-feed
+          rclone --config "$RCLONE_CONFIG" copy \
+            "r2:${R2_BUCKET}/" /tmp/sysext-feed/ \
+            --include "${SYSEXT_BUNDLE}-*.raw" \
+            --s3-no-check-bucket
+
+          # Generate SHA256SUMS
+          cd /tmp/sysext-feed
+          sha256sum --binary ${SYSEXT_BUNDLE}-*.raw > SHA256SUMS
+
+          echo "Generated SHA256SUMS:"
+          cat SHA256SUMS
+
+      - name: Upload SHA256SUMS to R2
+        env:
+          SYSEXT_BUNDLE: ${{ needs.setup.outputs.bundle }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          RCLONE_CONFIG="/tmp/rclone.conf"
+          cat > "$RCLONE_CONFIG" <<EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          EOF
+
+          rclone --config "$RCLONE_CONFIG" copy \
+            /tmp/sysext-feed/SHA256SUMS \
+            "r2:${R2_BUCKET}/SHA256SUMS" \
+            --progress \
+            --s3-no-check-bucket
+
+      - name: Publish summary
+        run: |
+          echo "## SHA256SUMS index updated" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Feed available at: \`https://${{ vars.R2_SYSEXT_BUCKET }}/\`" >> "$GITHUB_STEP_SUMMARY"

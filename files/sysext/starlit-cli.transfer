@@ -1,0 +1,14 @@
+[Transfer]
+Verify=false
+
+[Source]
+Type=url-file
+Path=https://${R2_BUCKET}/
+MatchPattern=starlit-cli-@v-%a.raw
+
+[Target]
+Type=regular-file
+Path=/var/lib/extensions
+MatchPattern=starlit-cli-@v-%a.raw
+CurrentSymlink=/etc/extensions/starlit-cli.raw
+InstancesMax=2
