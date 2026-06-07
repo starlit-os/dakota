@@ -6,6 +6,7 @@ on:
       - starlit-sysexts
     paths:
       - "elements/sysext/**"
+      - "justfiles/sysext*.just"
       - ".github/workflows/sysext-publish.yml"
   workflow_dispatch:
     inputs:
