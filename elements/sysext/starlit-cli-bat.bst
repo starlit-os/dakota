@@ -6,11 +6,11 @@ sources:
 - kind: tar
   (?):
   - arch == "x86_64":
-      url: github_files:sharkdp/bat/releases/download/v0.26.0/bat-v0.26.0-x86_64-unknown-linux-gnu.tar.gz
-      ref: 7efed0c768fae36f18ddbbb4a38f5c4b64db7c55a170dfc89fd380805809a44b
+      url: github_files:sharkdp/bat/releases/download/v0.26.1/bat-v0.26.1-x86_64-unknown-linux-gnu.tar.gz
+      ref: "726f04c8f576a7fd18b7634f1bbf2f915c43494c1c0f013baa3287edb0d5a2a3"
   - arch == "aarch64":
-      url: github_files:sharkdp/bat/releases/download/v0.26.0/bat-v0.26.0-aarch64-unknown-linux-gnu.tar.gz
-      ref: eb8c96a2d9aaaf81cf7d8c3b7918a7336a06a1dec08878887963dc2cdd7db354
+      url: github_files:sharkdp/bat/releases/download/v0.26.1/bat-v0.26.1-aarch64-unknown-linux-gnu.tar.gz
+      ref: "0000000000000000000000000000000000000000000000000000000000000000"
 
 build-depends:
 - freedesktop-sdk.bst:bootstrap/bash.bst
