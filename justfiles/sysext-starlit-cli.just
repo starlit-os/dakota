@@ -179,22 +179,23 @@ sysext-starlit-cli-host-sysupdate-remote base_url="" transfer_path="/etc/sysupda
 
     $SUDO_CMD install -d /etc/sysupdate.starlit-cli.d
 
-    cat > /tmp/starlit-cli.transfer <<EOF
-[Transfer]
-Verify=false
-
-[Source]
-Type=url-file
-Path={{base_url}}
-MatchPattern=$MATCH_PATTERN
-
-[Target]
-Type=regular-file
-Path=/var/lib/extensions
-MatchPattern=$MATCH_PATTERN
-CurrentSymlink=/etc/extensions/starlit-cli.raw
-InstancesMax=2
-EOF
+    # Build transfer file line by line to avoid just heredoc parsing issues
+    {
+        echo "[Transfer]"
+        echo "Verify=false"
+        echo
+        echo "[Source]"
+        echo "Type=url-file"
+        echo "Path={{base_url}}"
+        echo "MatchPattern=$MATCH_PATTERN"
+        echo
+        echo "[Target]"
+        echo "Type=regular-file"
+        echo "Path=/var/lib/extensions"
+        echo "MatchPattern=$MATCH_PATTERN"
+        echo "CurrentSymlink=/etc/extensions/starlit-cli.raw"
+        echo "InstancesMax=2"
+    } > /tmp/starlit-cli.transfer
 
     $SUDO_CMD install -m0644 /tmp/starlit-cli.transfer "{{transfer_path}}"
     rm /tmp/starlit-cli.transfer
