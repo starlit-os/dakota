@@ -1,4 +1,5 @@
 # starlit-cli sysext helper workflows.
+_raw := ".raw"
 
 [group('sysext')]
 sysext-starlit-cli:
@@ -90,7 +91,7 @@ sysext-starlit-cli-sysupdate-feed version source_dir=".build-sysext/starlit-cli-
         echo "Type=regular-file"
         echo "Path=/var/lib/extensions"
         echo "MatchPattern=$MATCH_PATTERN"
-        echo "CurrentSymlink=/etc/extensions/starlit-cli.raw"
+        echo "CurrentSymlink=/etc/extensions/starlit-cli{{_raw}}"
         echo "InstancesMax=2"
     } > "$OUT_DIR/starlit-cli.transfer.example"
 
@@ -107,7 +108,7 @@ sysext-starlit-cli-sysupdate-feed version source_dir=".build-sysext/starlit-cli-
         echo "Type=regular-file"
         echo "Path=/var/lib/extensions"
         echo "MatchPattern=$MATCH_PATTERN"
-        echo "CurrentSymlink=/etc/extensions/starlit-cli.raw"
+        echo "CurrentSymlink=/etc/extensions/starlit-cli{{_raw}}"
         echo "InstancesMax=2"
     } > "$OUT_DIR/starlit-cli.local.transfer"
 
@@ -179,22 +180,22 @@ sysext-starlit-cli-host-sysupdate-remote base_url="" transfer_path="/etc/sysupda
 
     $SUDO_CMD install -d /etc/sysupdate.starlit-cli.d
 
-    cat > /tmp/starlit-cli.transfer <<EOF
-[Transfer]
-Verify=false
-
-[Source]
-Type=url-file
-Path={{base_url}}
-MatchPattern=$MATCH_PATTERN
-
-[Target]
-Type=regular-file
-Path=/var/lib/extensions
-MatchPattern=$MATCH_PATTERN
-CurrentSymlink=/etc/extensions/starlit-cli.raw
-InstancesMax=2
-EOF
+    {
+        echo "[Transfer]"
+        echo "Verify=false"
+        echo ""
+        echo "[Source]"
+        echo "Type=url-file"
+        echo "Path={{base_url}}"
+        echo "MatchPattern=$MATCH_PATTERN"
+        echo ""
+        echo "[Target]"
+        echo "Type=regular-file"
+        echo "Path=/var/lib/extensions"
+        echo "MatchPattern=$MATCH_PATTERN"
+        echo "CurrentSymlink=/etc/extensions/starlit-cli{{_raw}}"
+        echo "InstancesMax=2"
+    } > /tmp/starlit-cli.transfer
 
     $SUDO_CMD install -m0644 /tmp/starlit-cli.transfer "{{transfer_path}}"
     rm /tmp/starlit-cli.transfer
@@ -213,7 +214,7 @@ sysext-starlit-cli-host-sysupdate-list:
 
 [group('sysext')]
 sysext-starlit-cli-host-sysupdate-status:
-    just _sysext-host-sysupdate-status starlit-cli /etc/sysupdate.starlit-cli.d/starlit-cli.transfer /etc/extensions/starlit-cli.raw
+    just _sysext-host-sysupdate-status starlit-cli /etc/sysupdate.starlit-cli.d/starlit-cli.transfer /etc/extensions/starlit-cli{{_raw}}
 
 [group('sysext')]
 sysext-starlit-cli-host-sysupdate-update:
@@ -229,7 +230,7 @@ sysext-starlit-cli-host-sysupdate-remove-transfer:
 
 [group('sysext')]
 sysext-starlit-cli-host-sysupdate-reset:
-    just _sysext-host-sysupdate-reset starlit-cli /etc/sysupdate.starlit-cli.d /etc/sysupdate.starlit-cli.d/starlit-cli.transfer /etc/extensions/starlit-cli.raw '/var/lib/extensions/starlit-cli-*.raw' /var/lib/extensions/starlit-cli
+    just _sysext-host-sysupdate-reset starlit-cli /etc/sysupdate.starlit-cli.d /etc/sysupdate.starlit-cli.d/starlit-cli.transfer /etc/extensions/starlit-cli{{_raw}} '/var/lib/extensions/starlit-cli-*.raw' /var/lib/extensions/starlit-cli
 
 [group('sysext')]
 sysext-starlit-cli-host-smoke:
