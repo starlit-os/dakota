@@ -135,14 +135,71 @@ sysext-starlit-cli-host-install source=".build-sysext/starlit-cli":
     just _sysext-host-install starlit-cli "{{source}}" fish
     echo ""
     echo "==> Additional CLI tools on PATH"
-    command -v bat || true
-    command -v eza || true
+    for cmd in bat eza atuin chezmoi dysk fd gh rg starship zoxide mise usage fnox; do
+        command -v "$cmd" || true
+    done
 
 [group('sysext')]
 sysext-starlit-cli-host-sysupdate source_dir=".build-sysext/starlit-cli-sysupdate":
     #!/usr/bin/env bash
     set -euo pipefail
     just sysext-starlit-cli-host-sysupdate-install-transfer "{{source_dir}}"
+    just sysext-starlit-cli-host-sysupdate-list
+    just sysext-starlit-cli-host-sysupdate-update
+
+[group('sysext')]
+sysext-starlit-cli-host-sysupdate-remote base_url="" transfer_path="/etc/sysupdate.starlit-cli.d/starlit-cli.transfer":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ -z "{{base_url}}" ]; then
+        echo "ERROR: base_url is required." >&2
+        echo "Usage: just sysext-starlit-cli-host-sysupdate-remote <R2-feed-url>" >&2
+        echo "Example: just sysext-starlit-cli-host-sysupdate-remote https://sysexts.example.com" >&2
+        exit 1
+    fi
+
+    ARCH=""
+    case "$(uname -m)" in
+        x86_64) ARCH="x86-64" ;;
+        aarch64) ARCH="arm64" ;;
+        *)
+            echo "ERROR: unsupported host arch $(uname -m)" >&2
+            exit 1
+            ;;
+    esac
+
+    ARCH_SPEC="$(printf '\x25a')"
+    MATCH_PATTERN="starlit-cli-@v-$ARCH_SPEC.raw"
+
+    SUDO_CMD=""
+    if [ "$(id -u)" -ne 0 ]; then
+        SUDO_CMD="sudo"
+    fi
+
+    $SUDO_CMD install -d /etc/sysupdate.starlit-cli.d
+
+    cat > /tmp/starlit-cli.transfer <<EOF
+[Transfer]
+Verify=false
+
+[Source]
+Type=url-file
+Path={{base_url}}
+MatchPattern=$MATCH_PATTERN
+
+[Target]
+Type=regular-file
+Path=/var/lib/extensions
+MatchPattern=$MATCH_PATTERN
+CurrentSymlink=/etc/extensions/starlit-cli.raw
+InstancesMax=2
+EOF
+
+    $SUDO_CMD install -m0644 /tmp/starlit-cli.transfer "{{transfer_path}}"
+    rm /tmp/starlit-cli.transfer
+
+    echo "==> Remote sysupdate transfer installed"
     just sysext-starlit-cli-host-sysupdate-list
     just sysext-starlit-cli-host-sysupdate-update
 
@@ -198,7 +255,62 @@ sysext-starlit-cli-host-smoke:
     eza --version
     echo ""
 
-    echo "PASS: starlit-cli sysext is active and fish, bat, and eza run"
+    echo "==> Checking atuin..."
+    command -v atuin
+    atuin --version
+    echo ""
+
+    echo "==> Checking chezmoi..."
+    command -v chezmoi
+    chezmoi --version
+    echo ""
+
+    echo "==> Checking dysk..."
+    command -v dysk
+    dysk --version
+    echo ""
+
+    echo "==> Checking fd..."
+    command -v fd
+    fd --version
+    echo ""
+
+    echo "==> Checking gh..."
+    command -v gh
+    gh --version
+    echo ""
+
+    echo "==> Checking ripgrep..."
+    command -v rg
+    rg --version
+    echo ""
+
+    echo "==> Checking starship..."
+    command -v starship
+    starship --version
+    echo ""
+
+    echo "==> Checking zoxide..."
+    command -v zoxide
+    zoxide --version
+    echo ""
+
+    echo "==> Checking mise..."
+    command -v mise
+    mise --version
+    echo ""
+
+    echo "==> Checking usage..."
+    command -v usage
+    usage --version
+    echo ""
+
+    echo "==> Checking fnox..."
+    command -v fnox
+    fnox --version
+    echo ""
+
+    echo "PASS: starlit-cli sysext is active and all tools run"
 
 [group('sysext')]
 sysext-starlit-cli-host-remove:
