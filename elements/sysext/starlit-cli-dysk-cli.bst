@@ -20,7 +20,7 @@ variables:
 config:
   install-commands:
   - |
-    bsdtar -xvf dysk_3.6.1.zip 'build/*/dysk'
+    bsdtar --no-same-owner -xvf dysk_3.6.1.zip 'build/*/dysk'
     (?)
     - arch == "x86_64":
         install -Dm755 build/x86_64-unknown-linux-musl/dysk "%{install-root}%{bindir}/dysk"
