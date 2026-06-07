@@ -35,7 +35,7 @@ env:
 jobs:
   # ── Resolve context ───────────────────────────────────────────────────────
   setup:
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-8vcpu-ubuntu-24.04
     outputs:
       sha: ${{ steps.context.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
