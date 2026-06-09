@@ -1,0 +1,19 @@
+buildstream ~= 2.5.0
+
+# There is an API break in Click 8.3.0 that causes breakage in BuildStream 2.5.0.
+# Pin a compatible version until a new BuildStream release adapts to the new API.
+click == 8.2.1
+
+# Dulwich is required by the `git_repo` source plugin from
+# buildstream-plugins-community.
+#
+# The upstream project is known to break API even in patch releases so we
+# must always pin a specific version.
+dulwich == 0.24.0
+
+# Required by various non-core BuildStream plugins.
+requests ~= 2.32
+
+# tomlkit is required by the cargo2 source plugin from
+# buildstream-plugins-community.
+tomlkit ~= 0.13

@@ -673,6 +673,56 @@ if: >-
    startsWith(needs.setup.outputs.branch, 'gh-readonly-queue/main/'))
 ```
 
+### Direct BST install (pip) for experimental workflows — skip bst2 podman (2026-06-09)
+
+The main `build.yml` workflow runs BST inside the `bst2` podman container (via
+`just bst …`). This is the right choice for production builds, but it adds podman
+container-launch overhead and introduces a dependency on the `just` wrapper plus
+the in-repo `generate-bst-ci-config` action.
+
+For experimental or self-contained workflows (e.g., `sysext-publish.yml`), install
+BST directly via pip — the same approach used by `projectbluefin/zirconium-hawaii`.
+
+**Checklist for a direct-BST workflow:**
+
+1. Create `utils/requirements.txt` with pinned BST deps.
+2. Install apt packages: `python3-pip python3-venv bubblewrap lzip xz-utils bzip2 gzip git wget curl`
+3. Install BST in a venv: `python3 -m venv venv && source venv/bin/activate && pip install -r utils/requirements.txt`
+4. Write `~/.config/buildstream.conf` (the standard BST user config — no `--config` flag needed).
+5. Enable bubblewrap sandbox: `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`
+6. Run `bst` (not `just bst`) directly with explicit flags: `-o x86_64_v3 true --no-interactive`
+
+**Minimal `~/.config/buildstream.conf` (no remote cache):**
+```yaml
+scheduler:
+  on-error: continue
+  fetchers: 32
+  builders: 4
+  network-retries: 3
+
+logging:
+  message-format: '[%{wallclock}][%{elapsed}][%{key}][%{element}] %{action} %{message}'
+  error-lines: 80
+
+build:
+  retry-failed: True
+```
+
+**Do not** pass `CASD_CLIENT_CERT`/`CASD_CLIENT_KEY` if this repo has no credentials
+for the projectbluefin cache. The `generate-bst-ci-config` action skips the cache
+config block when the vars are empty, but omitting the step entirely is cleaner and
+avoids the 5-6x slowdown seen when a push path is active (per zirconium-hawaii's
+`reusable-build-bootc.yml`, comment on the "Configure BuildStream to not push"
+step).
+
+Artifact checkout (equivalent of `just bst artifact checkout`):
+```bash
+source venv/bin/activate
+bst -o x86_64_v3 true --no-interactive \
+  artifact checkout "sysext/foo-raw.bst" \
+  --directory ".build-sysext/foo-raw"
+```
+
 ### :next/:btw stream — fully automated, no human gate (2026-06-08)
 
 The `next` branch (`:next`/`:btw` tags) is a continuously rolling GNOME OS

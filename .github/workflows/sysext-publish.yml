@@ -64,41 +64,72 @@ jobs:
   # ── Build and upload .raw ────────────────────────────────────────────────
   # NOTE: GitHub runners are x86_64, so this only produces x86-64 .raw files.
   # Add arm64 runners (or cross-build support) when aarch64 sysexts are needed.
+  #
+  # BST is installed directly via pip (no bst2 podman container) to avoid
+  # container-launch overhead and keep this workflow self-contained.
+  # No remote cache credentials — builds locally only, which also avoids the
+  # 5-6x slowdown seen when a push path is active (per zirconium-hawaii
+  # reusable-build-bootc.yml).
   build:
     needs: setup
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     timeout-minutes: 120
     permissions:
       contents: read
-      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ needs.setup.outputs.sha }}
 
-      - name: Setup runner
-        uses: projectbluefin/actions/bootc-build/setup-runner@95dc404b7c69ad65889e3f3bf49ecba5cd3018e6 # v1.1.0
-        with:
-          storage-backend: btrfs
-          update-podman: true
-          install-tools: '["just"]'
+      - name: Install BuildStream and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip python3-venv bubblewrap \
+            lzip xz-utils bzip2 gzip \
+            git wget curl
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r utils/requirements.txt
 
-      - name: Generate BST fetch config
-        env:
-          CASD_CLIENT_CERT: ${{ vars.CASD_CLIENT_CERT }}
-          CASD_CLIENT_KEY: ${{ secrets.CASD_CLIENT_KEY }}
-        uses: ./.github/actions/generate-bst-ci-config
-        with:
-          enable-remote-execution: "false"
-          enable-push: "false"
+      - name: Configure BuildStream
+        run: |
+          mkdir -p ~/.config
+          cat > ~/.config/buildstream.conf << 'EOF'
+          scheduler:
+            on-error: continue
+            fetchers: 32
+            builders: 4
+            network-retries: 3
+
+          logging:
+            message-format: '[%{wallclock}][%{elapsed}][%{key}][%{element}] %{action} %{message}'
+            error-lines: 80
+
+          build:
+            retry-failed: True
+          EOF
+
+      - name: Enable unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Build sysext .raw
         env:
-          BST_FLAGS: -o x86_64_v3 true --no-interactive --config /src/buildstream-ci.conf
           SYSEXT_BUNDLE: ${{ needs.setup.outputs.bundle }}
         run: |
-          just "sysext-${SYSEXT_BUNDLE}-raw"
+          source venv/bin/activate
+          bst -o x86_64_v3 true --no-interactive \
+            build "sysext/${SYSEXT_BUNDLE}-raw.bst"
+
+      - name: Checkout .raw artifact
+        env:
+          SYSEXT_BUNDLE: ${{ needs.setup.outputs.bundle }}
+        run: |
+          source venv/bin/activate
+          bst -o x86_64_v3 true --no-interactive \
+            artifact checkout "sysext/${SYSEXT_BUNDLE}-raw.bst" \
+            --directory ".build-sysext/${SYSEXT_BUNDLE}-raw"
 
       - name: Upload .raw to R2
         env:
