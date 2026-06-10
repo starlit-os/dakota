@@ -40,6 +40,7 @@ Every agent session produces two outputs: **the work** (the PR) and **the learni
 | Installer (bootc-installer) | [`installer.md`](installer.md) |
 | Merging dep-update PRs into testing | [`merge-queue.md`](merge-queue.md) |
 | PR review workflow | [`pr-review.md`](pr-review.md) |
+| Porting a single-binary CLI sysext to `starlit-os/sysext-bakery` (or back) | [`sysext-bakery.md`](sysext-bakery.md) |
 
 ## Mandatory skill contribution
 
